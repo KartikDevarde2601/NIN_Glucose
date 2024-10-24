@@ -1640,6 +1640,11 @@
   dependencies:
     hoist-non-react-statics "^3.3.2"
 
+"@op-engineering/op-sqlite@^9.2.4":
+  version "9.2.4"
+  resolved "https://registry.yarnpkg.com/@op-engineering/op-sqlite/-/op-sqlite-9.2.4.tgz#bf9b327505594bb31fde4d873d0414c956bbf68b"
+  integrity sha512-Dq3SGD83/+aPlUxg1zWCs3rHUVbn99vLGGJJNXeBrsRSqv1KkDm5poawTytXKVoxrFaebrVPWAYdQrP/mO7+rg==
+
 "@react-native-async-storage/async-storage@^2.0.0":
   version "2.0.0"
   resolved "https://registry.npmjs.org/@react-native-async-storage/async-storage/-/async-storage-2.0.0.tgz"

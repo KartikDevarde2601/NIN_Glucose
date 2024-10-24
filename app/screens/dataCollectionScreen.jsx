@@ -15,7 +15,7 @@ import {
   addGsr,
 } from '../redux/features/sensorSlice';
 import {addBio} from '../redux/features/graphSlice';
-import {database} from '../DB/database';
+import {database} from '../watermelodb/database';
 
 const options = {
   clientId: 'myClientId',

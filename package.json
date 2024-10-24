@@ -17,6 +17,7 @@
     "@ko-developerhong/react-native-mqtt": "^1.0.2",
     "@nozbe/watermelondb": "^0.27.1",
     "@nozbe/with-observables": "^1.6.0",
+    "@op-engineering/op-sqlite": "^9.2.4",
     "@react-native-async-storage/async-storage": "^2.0.0",
     "@react-navigation/bottom-tabs": "^6.6.1",
     "@react-navigation/native": "^6.1.18",

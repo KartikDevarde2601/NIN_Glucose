@@ -12,7 +12,7 @@ import * as Yup from 'yup';
 import {KeyboardAwareScrollView} from 'react-native-keyboard-aware-scroll-view';
 import DatePicker from 'react-native-date-picker'; // Import the date picker
 import HeaderWithLogo from '../components/headerlogo';
-import {database} from '../DB/database';
+import {database} from '../watermelodb/database';
 import {Theme} from '../theme/theme';
 import {useTheme} from 'react-native-paper';
 

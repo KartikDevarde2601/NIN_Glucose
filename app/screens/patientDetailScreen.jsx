@@ -5,7 +5,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import {useTheme} from 'react-native-paper';
 import withObservables from '@nozbe/with-observables';
 import {Q} from '@nozbe/watermelondb';
-import {database} from '../DB/database';
+import {database} from '../watermelodb/database';
 import VisitCard from '../components/visitCard';
 import VisitBottomSheet from '../components/visitBottomSheet';
 import PatientDetailsCard from '../components/patientDetailsCard';

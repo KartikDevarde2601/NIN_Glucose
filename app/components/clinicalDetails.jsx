@@ -2,7 +2,7 @@ import React from 'react';
 import {View, StyleSheet} from 'react-native';
 import {Headline, Text, useTheme} from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import {database} from '../DB/database';
+import {database} from '../watermelodb/database';
 import withObservables from '@nozbe/with-observables';
 import {ScrollView} from 'react-native-gesture-handler';
 import {Q} from '@nozbe/watermelondb';

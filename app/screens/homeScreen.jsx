@@ -5,11 +5,38 @@ import PatientList from '../components/patinetList';
 import HeaderWithLogo from '../components/headerlogo';
 import withObservables from '@nozbe/with-observables';
 import {withDatabase, compose} from '@nozbe/watermelondb/react';
-
 import {Q} from '@nozbe/watermelondb';
+import {DatabaseService} from '../op-sqllite/databaseService';
+import {TABLE} from '../op-sqllite/db_table';
 
 const HomeScreen = ({patients}) => {
   const [search, setSearch] = useState('');
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const db = DatabaseService.getInstance();
+      const result = await db.executeQuery(
+        `SELECT * FROM ${TABLE.biosensor_data}`,
+      );
+
+      console.log('result', result);
+    };
+
+    fetchData();
+  }, []);
+
+  // useEffect(() => {
+  //   const insertData = async () => {
+  //     const Data = {
+  //       visit_id: 'uebnd-dbdeb-fbfiwb',
+  //       data: "{'temp': 36.5, 'pulse': 80, 'spo2': 98}",
+  //     };
+  //     const result = await sensorRepo.insertBioData(Data);
+  //     console.log(result);
+  //   };
+
+  //   insertData();
+  // }, []);
 
   return (
     <View style={styles.container}>

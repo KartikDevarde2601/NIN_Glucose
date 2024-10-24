@@ -6,7 +6,7 @@ import {View, FlatList, TouchableOpacity, StyleSheet} from 'react-native';
 import {Headline} from 'react-native-paper';
 import {useTheme} from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import {database} from '../DB/database';
+import {database} from '../watermelodb/database';
 import withObservables from '@nozbe/with-observables';
 import {Q} from '@nozbe/watermelondb';
 
