@@ -1,8 +1,8 @@
 import { createSlice} from '@reduxjs/toolkit';
 
 interface SensorData {
-    BIA: number;
-    PHA: number;
+    bioImpedance: number;
+    phaseAngle: number;
     time?: bigint | string;
 }
 

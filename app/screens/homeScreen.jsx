@@ -19,10 +19,11 @@ const HomeScreen = ({patients}) => {
         `SELECT * FROM ${TABLE.biosensor_data}`,
       );
 
-      console.log('result', result);
+      const data = result.rows[0].data;
+      console.log(data);
     };
 
-    fetchData();
+    // fetchData();
   }, []);
 
   // useEffect(() => {

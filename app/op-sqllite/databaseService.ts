@@ -26,7 +26,10 @@ export class DatabaseService {
                 await this.database.execute(
                     `CREATE TABLE IF NOT EXISTS ${TABLE.biosensor_data} (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        time INTEGER DEFAULT 0,
                         visit_id TEXT,
+                        config TEXT,
+                        frequency INTEGER,
                         sensor_type TEXT DEFAULT 'BIOSENSOR',
                         data TEXT,
                         is_synced INTEGER DEFAULT 0,
@@ -35,8 +38,11 @@ export class DatabaseService {
                     
                     CREATE TABLE IF NOT EXISTS ${TABLE.temperature_data} (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        time INTEGER DEFAULT 0,
                         visit_id TEXT,
                         sensor_type TEXT DEFAULT 'TEMPERATURE',
+                        config TEXT,
+                        frequency INTEGER,
                         data TEXT,
                         is_synced INTEGER DEFAULT 0,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -44,8 +50,11 @@ export class DatabaseService {
     
                     CREATE TABLE IF NOT EXISTS ${TABLE.glucose_data} (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        time INTEGER DEFAULT 0,
                         visit_id TEXT,
                         sensor_type TEXT DEFAULT 'GLUCOSE',
+                        config TEXT,
+                        frequency INTEGER,
                         data TEXT,
                         is_synced INTEGER DEFAULT 0,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -53,8 +62,11 @@ export class DatabaseService {
     
                     CREATE TABLE IF NOT EXISTS ${TABLE.gsr_data} (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        time INTEGER DEFAULT 0,
                         visit_id TEXT,
                         sensor_type TEXT DEFAULT 'GSR',
+                        config TEXT,
+                        frequency INTEGER,
                         data TEXT,
                         is_synced INTEGER DEFAULT 0,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

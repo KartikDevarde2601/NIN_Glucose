@@ -89,12 +89,12 @@ const GraphScreen = () => {
         {
           type: 'line',
           showSymbol: false,
-          data: numPoints.map(item => item.BIA),
+          data: numPoints.map(item => item.bioImpedance),
         },
         {
           type: 'line',
           showSymbol: false,
-          data: numPoints.map(item => item.PHA),
+          data: numPoints.map(item => item.phaseAngle),
           xAxisIndex: 1,
           yAxisIndex: 1,
         },

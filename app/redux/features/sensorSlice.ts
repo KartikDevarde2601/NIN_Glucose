@@ -2,17 +2,17 @@ import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 // Define sensor data structures
 interface TemperatureSensor {
-    data: number;
+    temperature: number;
     time: string;
 }
 
 interface GlucoseSensor {
-    data: number;
+    glucose: number;
     time: string;
 }
 
 interface GsrSensor {
-    data: number;
+    gsr: number;
     time: string;
 }
 
@@ -25,9 +25,9 @@ interface SensorState {
 
 // Initial state with default values
 const initialState: SensorState = {
-    temperature: { data: 0, time: '' },
-    glucose: { data: 0, time: '' },
-    gsr: { data: 0, time: '' },
+    temperature: { temperature: 0, time: '' },
+    glucose: { glucose: 0, time: '' },
+    gsr: { gsr: 0, time: '' },
 };
 
 // Generic helper function to add time formatting
@@ -51,23 +51,23 @@ export const sensorSlice = createSlice({
     initialState,
     reducers: {
         // Reducer for temperature sensor data
-        addTemperature: (state, action: PayloadAction<{ data: number; time: string }[]>) => {
+        addTemperature: (state, action: PayloadAction<{ temperature: number; time: string }[]>) => {
             const data = addTimeToData(action.payload)[0]; // Assuming you want the first entry
-            state.temperature.data = Math.round(data.data);
+            state.temperature.temperature = Math.round(data.temperature);
             state.temperature.time = data.time;
         },
 
         // Reducer for glucose sensor data
-        addGlucose: (state, action: PayloadAction<{ data: number; time: string }[]>) => {
+        addGlucose: (state, action: PayloadAction<{ glucose: number; time: string }[]>) => {
             const data = addTimeToData(action.payload)[0]; // Assuming you want the first entry
-            state.glucose.data = Math.round(data.data);
+            state.glucose.glucose = Math.round(data.glucose);
             state.glucose.time = data.time;
         },
 
         // Reducer for GSR sensor data
-        addGsr: (state, action: PayloadAction<{ data: number; time: string }[]>) => {
+        addGsr: (state, action: PayloadAction<{ gsr: number; time: string }[]>) => {
             const data = addTimeToData(action.payload)[0]; // Assuming you want the first entry
-            state.gsr.data = Math.round(data.data);
+            state.gsr.gsr = Math.round(data.gsr);
             state.gsr.time = data.time;
         }
     }

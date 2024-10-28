@@ -15,7 +15,8 @@ import {
   addGsr,
 } from '../redux/features/sensorSlice';
 import {addBio} from '../redux/features/graphSlice';
-import {database} from '../watermelodb/database';
+import {sensorRepository} from '../op-sqllite/sensorRepository';
+import {TABLE} from '../op-sqllite/db_table';
 
 const options = {
   clientId: 'myClientId',
@@ -29,8 +30,10 @@ const options = {
 
 const DataCollectionScreen = ({route}) => {
   const [IP, setIP] = useState(null);
-  const [visit, setVisit] = useState(null);
+  const [visitId, setVisitId] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
+
+  const sensor = new sensorRepository();
 
   // Use refs to store interval IDs to persist values across renders
   const intervalIdTemp = useRef(null);
@@ -44,46 +47,17 @@ const DataCollectionScreen = ({route}) => {
 
   const stringToJson = message => JSON.parse(message.toString());
 
-  const insertBIA = async RawBIA => {
-    const data_json = {data: RawBIA.data};
+  const prepareSensorData = async (raw_data, tablename) => {
+    const data_json = {data: raw_data.data};
     const jsonString = JSON.stringify(data_json);
-    const BIA = {
-      time: RawBIA.time,
-      config: RawBIA.config,
-      freq: Number(RawBIA.freq),
+    const data = {
+      time: raw_data.Ts,
+      visit_id: visitId,
+      config: raw_data.config,
+      frequency: Number(raw_data.freq),
       data: jsonString,
     };
-    await visit.addBIA(BIA);
-  };
-
-  const insertTEM = async RawTEM => {
-    const TEM = {
-      time: RawTEM.data[0].time,
-      config: RawTEM.Config,
-      freq: Number(RawTEM.Frequency),
-      data: RawTEM.data,
-    };
-    await visit.addTEM(TEM);
-  };
-
-  const insertGSR = async RawGSR => {
-    const GSR = {
-      time: RawGSR.data[0].time,
-      config: RawGSR.Config,
-      freq: Number(RawGSR.Frequency),
-      data: RawGSR.data,
-    };
-    await visit.addGSR(GSR);
-  };
-
-  const insertGLU = async RawGLU => {
-    const GLU = {
-      time: RawGLU.data[0].time,
-      config: RawGLU.Config,
-      freq: Number(RawGLU.Frequency),
-      data: RawGLU.data,
-    };
-    await visit.addGLU(GLU);
+    await sensor.insertSensordata(data, tablename);
   };
 
   const handleAction = action => {
@@ -91,22 +65,22 @@ const DataCollectionScreen = ({route}) => {
       case 'TEM':
         const temp = stringToJson(action.message);
         dispatch(addTemperature(temp.data));
-        insertTEM(temp);
+        prepareSensorData(temp, TABLE.temperature_data);
         break;
       case 'GSR':
         const gsr = stringToJson(action.message);
         dispatch(addGsr(gsr.data));
-        insertGSR(gsr);
+        prepareSensorData(gsr, TABLE.gsr_data);
         break;
       case 'GLU':
-        const glucose = stringToJson(action.message);
-        dispatch(addGlucose(glucose.data));
-        insertGLU(glucose);
+        const glu = stringToJson(action.message);
+        dispatch(addGlucose(glu.data));
+        prepareSensorData(glu, TABLE.glucose_data);
         break;
       case 'BIO':
         const bio = stringToJson(action.message);
         dispatch(addBio(bio.data));
-        insertBIA(bio);
+        prepareSensorData(bio, TABLE.biosensor_data);
         break;
       case 'ECG':
         const ecg = stringToJson(action.message);
@@ -119,10 +93,7 @@ const DataCollectionScreen = ({route}) => {
 
   useEffect(() => {
     if (route.params.visitId) {
-      database.collections
-        .get('visits')
-        .find(route.params.visitId)
-        .then(visit => setVisit(visit));
+      setVisitId(route.params.visitId);
     }
   }, [route.params.visitId]);
 
@@ -219,7 +190,7 @@ const DataCollectionScreen = ({route}) => {
               GLU
             </Text>
             <Text variant="titleLarge" style={styles.cardTitle}>
-              {glucose.data}
+              {glucose.glucose}
             </Text>
             <Text variant="bodySmall" style={styles.cardText}>
               {glucose.time}
@@ -232,7 +203,7 @@ const DataCollectionScreen = ({route}) => {
               TEM
             </Text>
             <Text variant="titleLarge" style={styles.cardTitle}>
-              {temperature.data}
+              {temperature.temperature}
             </Text>
             <Text variant="bodySmall" style={styles.cardText}>
               {temperature.time}
@@ -245,7 +216,7 @@ const DataCollectionScreen = ({route}) => {
               GSR
             </Text>
             <Text variant="titleLarge" style={styles.cardTitle}>
-              {gsr.data}
+              {gsr.gsr}
             </Text>
             <Text variant="bodySmall" style={styles.cardText}>
               {gsr.time}
