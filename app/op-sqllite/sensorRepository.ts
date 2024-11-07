@@ -31,4 +31,4 @@ export class sensorRepository {
     }
 
 
-}
+} 

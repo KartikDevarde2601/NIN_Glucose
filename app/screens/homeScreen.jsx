@@ -8,22 +8,28 @@ import {withDatabase, compose} from '@nozbe/watermelondb/react';
 import {Q} from '@nozbe/watermelondb';
 import {DatabaseService} from '../op-sqllite/databaseService';
 import {TABLE} from '../op-sqllite/db_table';
+import SyncManager from '../sync/syncManeger';
 
 const HomeScreen = ({patients}) => {
   const [search, setSearch] = useState('');
 
+  const syncManager = new SyncManager('ws://10.2.137.217:8080', 100);
+
   useEffect(() => {
     const fetchData = async () => {
-      const db = DatabaseService.getInstance();
-      const result = await db.executeQuery(
-        `SELECT * FROM ${TABLE.biosensor_data}`,
-      );
+      // const db = DatabaseService.getInstance();
+      // const result = await db.executeQuery(
+      //   `SELECT * FROM ${TABLE.biosensor_data}`,
+      // );
 
-      const data = result.rows[0].data;
-      console.log(data);
+      // const data = result.rows[0].data;
+      // console.log(data);
+
+      syncManager.connectWebSocket();
+      syncManager.startSync();
     };
 
-    // fetchData();
+    fetchData();
   }, []);
 
   // useEffect(() => {
