@@ -13,7 +13,7 @@ import SyncManager from '../sync/syncManeger';
 const HomeScreen = ({patients}) => {
   const [search, setSearch] = useState('');
 
-  const syncManager = new SyncManager('ws://10.2.137.217:8080', 100);
+  const syncManager = new SyncManager('ws://10.2.137.217:8080', 10);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -26,7 +26,6 @@ const HomeScreen = ({patients}) => {
       // console.log(data);
 
       syncManager.connectWebSocket();
-      syncManager.startSync();
     };
 
     fetchData();

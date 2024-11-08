@@ -21,10 +21,20 @@ class SyncManager {
     this.ws = new WebSocket(this.serverUrl);
     this.ws.onopen = () => {
       console.log('WebSocket connected');
+      this.startSync();
     };
 
     this.ws.onmessage = event => {
       const response = JSON.parse(event.data);
+
+      // response object will be like this
+      /* {
+        type: 'sync_confirmation',
+        table: 'tableName',
+        offset: offset,
+        successIds: [array of processed IDs ]
+      } */
+
       this.handleSeverResponse(response);
     };
 
