@@ -17,11 +17,10 @@ class SyncManager {
   }
 
   connectWebSocket() {
-    console.log(this.serverUrl);
     this.ws = new WebSocket(this.serverUrl);
     this.ws.onopen = () => {
       console.log('WebSocket connected');
-      this.startSync();
+      this.deleteIsSyncedData();
     };
 
     this.ws.onmessage = event => {
@@ -32,9 +31,8 @@ class SyncManager {
         type: 'sync_confirmation',
         table: 'tableName',
         offset: offset,
-        successIds: [array of processed IDs ]
       } */
-
+      console.log('response: ', response);
       this.handleSeverResponse(response);
     };
 
@@ -77,8 +75,6 @@ class SyncManager {
     while (!progress.complete) {
       const data = await this.fetchBatch(tableName, progress.offset);
 
-      console.log('syncTable: ', data);
-
       if (data.length === 0) {
         progress.complete = true;
         break;
@@ -101,21 +97,39 @@ class SyncManager {
     const query = `SELECT * FROM ${tableName} LIMIT ${this.branchSize} OFFSET ${offset}`;
 
     const data = await this.db.executeQuery(query);
-    console.log('Fetched data: ', data);
     return data.rows;
   }
 
-  async deleteConfirmedData(tableName, ids) {
-    const query = `DELETE FROM ${tableName} WHERE id IN (${ids.join(',')})`;
-    await this.db.transaction(query);
+  async UpdateIsSyncedData(tableName, offset) {
+    const query = `
+      UPDATE ${tableName}
+      SET is_synced = 1
+      WHERE id IN (
+        SELECT id
+        FROM ${tableName}
+        ORDER BY id
+        LIMIT 100
+        OFFSET ${offset}
+      )
+    `;
+    await this.db.executeQuery(query);
+  }
+
+  async deleteIsSyncedData() {
+    for (const table of Object.keys(this.syncProgress)) {
+      console.log('Deleting is_synced data from table: ', table);
+    }
+    this.startSync();
+  }
+
+  deleteIsSyncedDataInTable(tableName) {
+    const query = `DELETE FROM ${tableName} WHERE is_synced = 1`;
+    return this.db.executeQuery(query);
   }
 
   async handleSeverResponse(respose) {
-    const {table, offset, ids} = respose;
-
-    if (ids.length > 0) {
-      await this.deleteConfirmedData(table, ids);
-    }
+    const {table, offset} = respose;
+    await this.UpdateIsSyncedData(table, offset);
   }
 }
 
