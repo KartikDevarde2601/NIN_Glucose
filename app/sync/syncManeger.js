@@ -17,10 +17,13 @@ class SyncManager {
   }
 
   connectWebSocket() {
+    if (this.ws) {
+      return this.ws;
+    }
     this.ws = new WebSocket(this.serverUrl);
     this.ws.onopen = () => {
       console.log('WebSocket connected');
-      this.deleteIsSyncedData();
+      return this.ws;
     };
 
     this.ws.onmessage = event => {
@@ -66,7 +69,10 @@ class SyncManager {
       await this.syncTable(table);
     }
 
+    console.log('Sync completed');
+
     this.syncInProgress = false;
+    return true;
   }
 
   async syncTable(tableName) {
@@ -77,6 +83,7 @@ class SyncManager {
 
       if (data.length === 0) {
         progress.complete = true;
+        console.log('Sync completed for table: ', tableName);
         break;
       }
 
@@ -117,9 +124,9 @@ class SyncManager {
 
   async deleteIsSyncedData() {
     for (const table of Object.keys(this.syncProgress)) {
+      // this.deleteIsSyncedDataInTable(table);
       console.log('Deleting is_synced data from table: ', table);
     }
-    this.startSync();
   }
 
   deleteIsSyncedDataInTable(tableName) {

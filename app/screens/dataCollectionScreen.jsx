@@ -49,7 +49,7 @@ const DataCollectionScreen = ({route}) => {
 
   const prepareSensorData = async (raw_data, tablename) => {
     const data_json = {data: raw_data.data};
-    const jsonString = JSON.stringify(data_json);
+    const jsonString = JSON.stringify(data_json.data);
     const data = {
       time: raw_data.Ts,
       visit_id: visitId,

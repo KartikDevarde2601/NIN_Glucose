@@ -1,11 +1,8 @@
 import React from 'react';
 import {Alert, StyleSheet, View, Text} from 'react-native';
-import {Avatar, Button, TextInput} from 'react-native-paper';
-import {useState} from 'react';
-import {saveString, loadString} from '../utils/storage';
+import {Avatar, Button} from 'react-native-paper';
 
 const NurseProfile = ({name, hospital, imageUrl}) => {
-  const [IP, setIP] = useState(loadString('IP'));
   const handleLogout = () => {
     Alert.alert('Logout', 'Are you sure you want to logout?', [
       {
@@ -22,12 +19,6 @@ const NurseProfile = ({name, hospital, imageUrl}) => {
     ]);
   };
 
-  const handleSetIP = () => {
-    saveString('IP', IP);
-    Alert.alert('IP Address Set', 'IP Address has been set successfully');
-    setIP('');
-  };
-
   return (
     <View style={styles.container}>
       {/* Profile Information */}
@@ -40,19 +31,10 @@ const NurseProfile = ({name, hospital, imageUrl}) => {
         <Text style={styles.name}>{name}</Text>
         <Text style={styles.hospital}>Hospital: {hospital}</Text>
       </View>
-      <TextInput
-        mode="outlined"
-        label="IP Address"
-        value={IP}
-        onChangeText={text => setIP(text)}
-        style={{width: '100%', marginBottom: 16}}
-      />
+
       <View style={styles.buttonContainer}>
         <Button mode="outlined" onPress={handleLogout}>
           Logout
-        </Button>
-        <Button mode="outlined" onPress={handleSetIP} style={[{marginLeft: 8}]}>
-          SetIP
         </Button>
       </View>
     </View>
