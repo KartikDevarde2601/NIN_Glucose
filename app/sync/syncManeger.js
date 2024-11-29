@@ -87,14 +87,15 @@ class SyncManager {
         break;
       }
 
-      this.ws.send(
-        JSON.stringify({
-          type: 'sync_data',
-          table: tableName,
-          data: data,
-          offset: progress.offset,
-        }),
-      );
+      const result = {
+        type: 'sync_data',
+        table: tableName,
+        data: data,
+        offset: progress.offset,
+      };
+      // console.log('Sending data to server: ', result);
+
+      this.ws.send(JSON.stringify(result));
 
       progress.offset += this.branchSize;
     }

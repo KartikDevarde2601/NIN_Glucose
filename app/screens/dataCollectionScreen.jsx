@@ -115,6 +115,7 @@ const DataCollectionScreen = ({route}) => {
       });
       MqttClient.on(ClientEvent.Disconnect, cause => {
         Alert.alert('Disconnected', cause);
+        stopInterval();
       });
       MqttClient.on(ClientEvent.Message, (topic, message) => {
         handleAction({topic, message});
@@ -137,6 +138,11 @@ const DataCollectionScreen = ({route}) => {
     intervalIdGlu.current = null;
     intervalIdGsr.current = null;
     intervalIdTemp.current = null;
+
+    MqttClient.unsubscribe(['BIO', 'TEM', 'GSR', 'GLU', 'CONFIG_CHANGE']);
+    MqttClient.disconnect();
+
+    console.log('Disconnected from MQTT broker');
   };
 
   const startInterval = () => {
@@ -177,7 +183,7 @@ const DataCollectionScreen = ({route}) => {
     }
 
     return () => {
-      stopInterval(); // Clean up on unmount
+      stopInterval();
     };
   }, []);
 
