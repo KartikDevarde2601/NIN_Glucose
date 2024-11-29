@@ -1,102 +1,203 @@
 import {DatabaseService} from '../op-sqllite/databaseService';
 
 class SyncManager {
-  constructor(serverUrl, branchSize, db) {
+  constructor(serverUrl, branchSize, options = {}) {
     this.serverUrl = serverUrl;
     this.branchSize = branchSize;
     this.ws = null;
     this.db = DatabaseService.getInstance();
-    this.syncInProgress = false;
 
+    // Enhanced configuration with default options
+    this.config = {
+      reconnectAttempts: options.reconnectAttempts || 5,
+      reconnectDelay: options.reconnectDelay || 5000,
+      syncTimeout: options.syncTimeout || 30000,
+      debugMode: options.debugMode || false,
+    };
+
+    this.syncInProgress = false;
+    this.reconnectCount = 0;
+
+    // Enhanced sync progress tracking with error handling
     this.syncProgress = {
-      biosensor_data: {offset: 0, complete: false},
-      temperature_data: {offset: 0, complete: false},
-      glucose_data: {offset: 0, complete: false},
-      gsr_data: {offset: 0, complete: false},
+      biosensor_data: {
+        offset: 0,
+        complete: false,
+        errors: 0,
+        lastErrorTime: null,
+      },
+      temperature_data: {
+        offset: 0,
+        complete: false,
+        errors: 0,
+        lastErrorTime: null,
+      },
+      glucose_data: {
+        offset: 0,
+        complete: false,
+        errors: 0,
+        lastErrorTime: null,
+      },
+      gsr_data: {offset: 0, complete: false, errors: 0, lastErrorTime: null},
     };
   }
 
+  // Improved logging method
+  _log(message, level = 'info') {
+    if (this.config.debugMode) {
+      const timestamp = new Date().toISOString();
+      console[level](`[SyncManager ${timestamp}] ${message}`);
+    }
+  }
+
+  // Enhanced WebSocket connection method
   connectWebSocket() {
-    if (this.ws) {
+    // Prevent multiple connection attempts
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this._log('WebSocket already connected');
       return this.ws;
     }
-    this.ws = new WebSocket(this.serverUrl);
-    this.ws.onopen = () => {
-      console.log('WebSocket connected');
+
+    try {
+      this.ws = new WebSocket(this.serverUrl);
+
+      // Set up connection timeout
+      const connectionTimeout = setTimeout(() => {
+        if (this.ws.readyState === WebSocket.CONNECTING) {
+          this._log('WebSocket connection timeout', 'error');
+          this.ws.close();
+          this.reconnect();
+        }
+      }, this.config.syncTimeout);
+
+      this.ws.onopen = () => {
+        clearTimeout(connectionTimeout);
+        this._log('WebSocket connected');
+        this.reconnectCount = 0; // Reset reconnect counter on successful connection
+      };
+
+      this.ws.onmessage = async event => {
+        try {
+          const response = JSON.parse(event.data);
+          this._log(`Received message: ${JSON.stringify(response)}`);
+          await this.handleServerResponse(response);
+        } catch (parseError) {
+          this._log(`Error parsing WebSocket message: ${parseError}`, 'error');
+        }
+      };
+
+      this.ws.onclose = event => {
+        this._log(
+          `WebSocket closed. Code: ${event.code}, Reason: ${event.reason}`,
+          'warn',
+        );
+        this.ws = null;
+        this.reconnect();
+      };
+
+      this.ws.onerror = error => {
+        this._log(`WebSocket error: ${error}`, 'error');
+        this.reconnect();
+      };
+
       return this.ws;
-    };
-
-    this.ws.onmessage = event => {
-      const response = JSON.parse(event.data);
-
-      // response object will be like this
-      /* {
-        type: 'sync_confirmation',
-        table: 'tableName',
-        offset: offset,
-      } */
-      console.log('response: ', response);
-      this.handleSeverResponse(response);
-    };
-
-    this.ws.onclose = () => {
-      console.log('WebSocket closed');
-      this.ws = null;
-    };
-
-    this.ws.onerror = error => {
-      console.log('WebSocket error: ', error);
+    } catch (connectionError) {
+      this._log(`WebSocket connection error: ${connectionError}`, 'error');
       this.reconnect();
-    };
+    }
   }
 
+  // Improved reconnect method with exponential backoff
   reconnect() {
+    if (this.reconnectCount >= this.config.reconnectAttempts) {
+      this._log(
+        'Max reconnection attempts reached. Stopping reconnection.',
+        'error',
+      );
+      return;
+    }
+
+    const delay = this.config.reconnectDelay * Math.pow(2, this.reconnectCount);
+    this.reconnectCount++;
+
+    this._log(
+      `Attempting to reconnect (Attempt ${this.reconnectCount})...`,
+      'warn',
+    );
+
     setTimeout(() => {
       this.connectWebSocket();
-    }, 5000);
+    }, delay);
   }
 
+  // Enhanced sync method with comprehensive error handling
   async startSync() {
     if (this.syncInProgress) {
-      console.log('Sync already in progress');
-      return;
+      this._log('Sync already in progress', 'warn');
+      return false;
+    }
+
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      this._log('WebSocket not connected. Attempting to connect...', 'warn');
+      this.connectWebSocket();
     }
 
     this.syncInProgress = true;
 
-    for (const table of Object.keys(this.syncProgress)) {
-      console.log('Syncing table: ', table);
-      await this.syncTable(table);
+    try {
+      for (const table of Object.keys(this.syncProgress)) {
+        try {
+          await this.syncTable(table);
+        } catch (tableError) {
+          // Handle individual table sync errors
+          this.syncProgress[table].errors++;
+          this.syncProgress[table].lastErrorTime = new Date();
+          this._log(`Error syncing table ${table}: ${tableError}`, 'error');
+        }
+      }
+
+      this._log('Sync completed successfully');
+      return true;
+    } catch (syncError) {
+      this._log(`Overall sync error: ${syncError}`, 'error');
+      return false;
+    } finally {
+      this.syncInProgress = false;
     }
-
-    console.log('Sync completed');
-
-    this.syncInProgress = false;
-    return true;
   }
 
+  // Rest of the methods remain largely the same with added error logging
   async syncTable(tableName) {
     const progress = this.syncProgress[tableName];
 
     while (!progress.complete) {
-      const data = await this.fetchBatch(tableName, progress.offset);
+      try {
+        const data = await this.fetchBatch(tableName, progress.offset);
 
-      if (data.length === 0) {
-        progress.complete = true;
-        console.log('Sync completed for table: ', tableName);
-        break;
+        if (data.length === 0) {
+          progress.complete = true;
+          this._log(`Sync completed for table: ${tableName}`);
+          break;
+        }
+
+        if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+          throw new Error('WebSocket disconnected during sync');
+        }
+
+        this.ws.send(
+          JSON.stringify({
+            type: 'sync_data',
+            table: tableName,
+            data: data,
+            offset: progress.offset,
+          }),
+        );
+
+        progress.offset += this.branchSize;
+      } catch (error) {
+        this._log(`Error during table sync: ${error}`, 'error');
+        throw error;
       }
-
-      this.ws.send(
-        JSON.stringify({
-          type: 'sync_data',
-          table: tableName,
-          data: data,
-          offset: progress.offset,
-        }),
-      );
-
-      progress.offset += this.branchSize;
     }
   }
 
