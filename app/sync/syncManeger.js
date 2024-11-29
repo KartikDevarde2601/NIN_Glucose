@@ -176,8 +176,12 @@ class SyncManager {
 
         if (data.length === 0) {
           progress.complete = true;
-          console.log('Sync completed for table: ', tableName);
+          this._log(`Sync completed for table: ${tableName}`);
           break;
+        }
+
+        if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+          throw new Error('WebSocket disconnected during sync');
         }
 
         this.ws.send(
