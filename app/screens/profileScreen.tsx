@@ -1,7 +1,7 @@
 import React from 'react';
 import {SafeAreaView, StyleSheet, View, Alert, Text} from 'react-native';
-import NurseProfile from '../components/nurseProfile'; // Import NurseProfile component
-import HeaderWithLogo from '../components/headerlogo'; // Import HeaderWithLogo component
+import NurseProfile from '../components/nurseProfile';
+import HeaderWithLogo from '../components/headerlogo';
 import {TextInput, Button} from 'react-native-paper';
 import {useState} from 'react';
 import {saveString, loadString} from '../utils/storage';
@@ -13,7 +13,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = () => {
   const [IP, setIP] = useState<string>(loadString('IP') || '');
   const [loading, setLoading] = useState<boolean>(false);
 
-  const syncManager = new SyncManager('ws://10.2.137.217:8080', 10);
+  const syncManager = new SyncManager('ws://10.8.16.70:8081/ws', 10);
 
   // Dummy data for nurse profile
   const nurseData = {
@@ -54,7 +54,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = () => {
           mode="outlined"
           label="IP Address"
           value={IP}
-          onChangeText={text => setIP(text)}
+          onChangeText={(text: string) => setIP(text)}
           style={styles.textInput}
         />
         <View style={styles.buttonContainer}>
