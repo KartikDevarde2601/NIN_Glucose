@@ -38,24 +38,56 @@ class SyncManager {
         errors: 0,
         lastErrorTime: null,
       },
-      gsr_data: {offset: 0, complete: false, errors: 0, lastErrorTime: null},
+      gsr_data: {
+        offset: 0,
+        complete: false,
+        errors: 0,
+        lastErrorTime: null,
+      },
     };
   }
 
-  // Improved logging method
-  _log(message, level = 'info') {
+  _log(message, level = 'info', context = {}) {
+    // Fallback logging method that works across different environments
+    const logLevels = ['log', 'info', 'warn', 'error'];
+    const safeLevel = logLevels.includes(level) ? level : 'log';
+
+    // Timestamp and base message
+    const timestamp = new Date().toISOString();
+    const logMessage = `[SyncManager ${timestamp}] ${message}`;
+
+    // Log the message
+    if (console[safeLevel]) {
+      // If context is provided, log with context
+      if (Object.keys(context).length > 0) {
+        console[safeLevel](logMessage, context);
+      } else {
+        console[safeLevel](logMessage);
+      }
+    } else {
+      // Fallback to console.log if specific level is not available
+      console.log(logMessage);
+    }
+
+    // Optional: Add more sophisticated logging (e.g., remote logging)
     if (this.config.debugMode) {
-      const timestamp = new Date().toISOString();
-      console[level](`[SyncManager ${timestamp}] ${message}`);
+      // You could implement additional logging mechanisms here
+      // For example, sending logs to a remote service
     }
   }
 
   // Enhanced WebSocket connection method
   connectWebSocket() {
-    // Prevent multiple connection attempts
-    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      this._log('WebSocket already connected');
-      return this.ws;
+    // If already connecting or open, return existing socket
+    if (this.ws) {
+      if (this.ws.readyState === WebSocket.OPEN) {
+        this._log('WebSocket already connected');
+        return this.ws;
+      }
+      if (this.ws.readyState === WebSocket.CONNECTING) {
+        this._log('WebSocket already connecting');
+        return null;
+      }
     }
 
     try {
@@ -64,7 +96,7 @@ class SyncManager {
       // Set up connection timeout
       const connectionTimeout = setTimeout(() => {
         if (this.ws.readyState === WebSocket.CONNECTING) {
-          this._log('WebSocket connection timeout', 'error');
+          this._log('WebSocket connection timed out', 'warn');
           this.ws.close();
           this.reconnect();
         }
@@ -72,7 +104,7 @@ class SyncManager {
 
       this.ws.onopen = () => {
         clearTimeout(connectionTimeout);
-        this._log('WebSocket connected');
+        this._log('WebSocket connected', 'success');
         this.reconnectCount = 0; // Reset reconnect counter on successful connection
       };
 
@@ -103,7 +135,9 @@ class SyncManager {
       return this.ws;
     } catch (connectionError) {
       this._log(`WebSocket connection error: ${connectionError}`, 'error');
+      this.ws = null;
       this.reconnect();
+      return null;
     }
   }
 
@@ -137,7 +171,11 @@ class SyncManager {
       return false;
     }
 
-    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+    if (
+      !this.ws ||
+      this.ws.readyState === null ||
+      this.ws.readyState !== WebSocket.OPEN
+    ) {
       this._log('WebSocket not connected. Attempting to connect...', 'warn');
       this.connectWebSocket();
     }
@@ -166,7 +204,6 @@ class SyncManager {
     }
   }
 
-  // Rest of the methods remain largely the same with added error logging
   async syncTable(tableName) {
     const progress = this.syncProgress[tableName];
 
@@ -208,7 +245,7 @@ class SyncManager {
     return data.rows;
   }
 
-  async UpdateIsSyncedData(tableName, offset) {
+  async updateIsSyncedData(tableName, offset) {
     const query = `
       UPDATE ${tableName}
       SET is_synced = 1
@@ -225,8 +262,15 @@ class SyncManager {
 
   async deleteIsSyncedData() {
     for (const table of Object.keys(this.syncProgress)) {
-      // this.deleteIsSyncedDataInTable(table);
-      console.log('Deleting is_synced data from table: ', table);
+      try {
+        //  await this.deleteIsSyncedDataInTable(table);
+        this._log(`Deleted synced data from table: ${table}`);
+      } catch (error) {
+        this._log(
+          `Error deleting synced data from ${table}: ${error}`,
+          'error',
+        );
+      }
     }
   }
 
@@ -235,9 +279,9 @@ class SyncManager {
     return this.db.executeQuery(query);
   }
 
-  async handleSeverResponse(respose) {
-    const {table, offset} = respose;
-    await this.UpdateIsSyncedData(table, offset);
+  async handleServerResponse(response) {
+    const {table, offset} = response;
+    await this.updateIsSyncedData(table, offset);
   }
 }
 
