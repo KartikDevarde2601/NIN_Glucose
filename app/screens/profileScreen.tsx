@@ -13,7 +13,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = () => {
   const [IP, setIP] = useState<string>(loadString('IP') || '');
   const [loading, setLoading] = useState<boolean>(false);
 
-  const syncManager = new SyncManager('ws://10.8.16.70:8081/ws', 10);
+  const syncManager = new SyncManager('ws://10.2.138.162:8081/ws', 10);
 
   // Dummy data for nurse profile
   const nurseData = {
@@ -31,7 +31,8 @@ const ProfileScreen: React.FC<ProfileScreenProps> = () => {
   const handleSyncData = async () => {
     setLoading(true);
     const websocket = await syncManager.connectWebSocket();
-    if (websocket !== null) {
+    console.log('websocket', websocket);
+    if (websocket) {
       await syncManager.deleteIsSyncedData();
       const response = await syncManager.startSync();
       console.log('response', response);

@@ -64,6 +64,7 @@ const DataCollectionScreen = ({route}) => {
     switch (action.topic) {
       case 'TEM':
         const temp = stringToJson(action.message);
+        console.log('Temperature: ', temp);
         dispatch(addTemperature(temp.data));
         prepareSensorData(temp, TABLE.temperature_data);
         break;
@@ -103,9 +104,8 @@ const DataCollectionScreen = ({route}) => {
 
   const clientInt = async () => {
     console.log('Connecting to MQTT broker');
-    console.log('IP: ', `mqtt://${IP}`);
     try {
-      await MqttClient.connect(`mqtt://${IP.trim()}`, {});
+      await MqttClient.connect('mqtt://192.168.147.251', {});
       MqttClient.on(ClientEvent.Connect, () => {
         setIsConnected(true);
         Alert.alert('Connected', 'Connected to MQTT broker successfully');
@@ -175,12 +175,12 @@ const DataCollectionScreen = ({route}) => {
   };
 
   useEffect(() => {
-    const ip = loadString('IP');
-    if (ip) {
-      setIP(ip);
-    } else {
-      Alert.alert('IP not set', 'Please set the IP address in settings');
-    }
+    // const ip = loadString('IP');
+    // if (ip) {
+    //   setIP(ip);
+    // } else {
+    //   Alert.alert('IP not set', 'Please set the IP address in settings');
+    // }
 
     return () => {
       stopInterval();
