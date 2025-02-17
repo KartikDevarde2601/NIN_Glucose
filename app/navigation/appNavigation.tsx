@@ -1,5 +1,12 @@
 import React, {useEffect, useState} from 'react';
-import {StyleSheet, Text, View, Image} from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  View,
+  Image,
+  ViewStyle,
+  ImageStyle,
+} from 'react-native';
 import {NavigationContainer} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {createMaterialBottomTabNavigator} from 'react-native-paper/react-navigation';
@@ -8,22 +15,44 @@ import LoginScreen from '../screens/loginScreen';
 import ProfileScreen from '../screens/profileScreen';
 import NewPatientScreen from '../screens/newPatientScreen';
 import PatientDetailScreen from '../screens/patientDetailScreen';
-import DataCollectionScreen from '../screens/dataCollectionScreen';
-import {useAppSelector, useAppDispatch} from '../redux/hooks';
+import AddClinicalDataScreen from '../screens/addClinicalDataScreen';
 import {load} from '../utils/storage';
-import {login} from '../redux/features/authSlice';
+import {useStores} from '../models';
 import {FontAwesomeIcon} from '@fortawesome/react-native-fontawesome';
+import {observer} from 'mobx-react-lite';
 import {
   faHouse,
   faUserPlus,
   faUserDoctor,
 } from '@fortawesome/free-solid-svg-icons';
 
-const Tab = createMaterialBottomTabNavigator();
-const MainStack = createNativeStackNavigator();
-const AuthStack = createNativeStackNavigator();
+export type RootStackParamList = {
+  hometabs: undefined;
+  patientDetail: {patientId: string};
+  addClinicalData: undefined;
+};
 
-const HomeTab = () => (
+export type AuthStackParamList = {
+  Login: undefined;
+};
+
+export type TabParamList = {
+  home: undefined;
+  addpatient: undefined;
+  profile: undefined;
+};
+
+type StylesType = {
+  container: ViewStyle;
+  logo: ImageStyle;
+};
+
+// Create typed navigators
+const Tab = createMaterialBottomTabNavigator<TabParamList>();
+const MainStack = createNativeStackNavigator<RootStackParamList>();
+const AuthStack = createNativeStackNavigator<AuthStackParamList>();
+
+const HomeTab: React.FC = () => (
   <Tab.Navigator
     activeColor="rgb(120, 69, 172)"
     barStyle={{backgroundColor: 'rgb(255, 251, 255)'}}>
@@ -32,7 +61,7 @@ const HomeTab = () => (
       component={HomeScreen}
       options={{
         tabBarLabel: 'Home',
-        tabBarIcon: ({color}) => (
+        tabBarIcon: ({color}: {color: string}) => (
           <FontAwesomeIcon icon={faHouse} color={color} size={24} />
         ),
       }}
@@ -42,7 +71,7 @@ const HomeTab = () => (
       component={NewPatientScreen}
       options={{
         tabBarLabel: 'AddPatient',
-        tabBarIcon: ({color}) => (
+        tabBarIcon: ({color}: {color: string}) => (
           <FontAwesomeIcon icon={faUserPlus} color={color} size={24} />
         ),
       }}
@@ -52,7 +81,7 @@ const HomeTab = () => (
       component={ProfileScreen}
       options={{
         tabBarLabel: 'Profile',
-        tabBarIcon: ({color}) => (
+        tabBarIcon: ({color}: {color: string}) => (
           <FontAwesomeIcon icon={faUserDoctor} color={color} size={24} />
         ),
       }}
@@ -60,7 +89,7 @@ const HomeTab = () => (
   </Tab.Navigator>
 );
 
-const MainNavigator = () => (
+const MainNavigator: React.FC = () => (
   <MainStack.Navigator initialRouteName="hometabs">
     <MainStack.Screen
       name="hometabs"
@@ -68,19 +97,19 @@ const MainNavigator = () => (
       options={{headerShown: false}}
     />
     <MainStack.Screen
-      name="datacollection"
-      component={DataCollectionScreen}
-      options={{headerShown: true}}
-    />
-    <MainStack.Screen
       name="patientDetail"
       component={PatientDetailScreen}
       options={{headerShown: true}}
     />
+    <MainStack.Screen
+      name="addClinicalData"
+      component={AddClinicalDataScreen}
+      options={{headerShown: false}}
+    />
   </MainStack.Navigator>
 );
 
-const AuthNavigator = () => (
+const AuthNavigator: React.FC = () => (
   <AuthStack.Navigator>
     <AuthStack.Screen
       name="Login"
@@ -90,54 +119,28 @@ const AuthNavigator = () => (
   </AuthStack.Navigator>
 );
 
-const AppNavigator = () => {
-  const [refresh, setRefresh] = useState(false);
-  const dispatch = useAppDispatch();
-  const islogin = useAppSelector(state => state.auth.islogin);
-
-  const refreshToken = async () => {
-    const authData = await load('auth');
-    return authData;
-  };
-
-  useEffect(() => {
-    const checkToken = async () => {
-      const res = await refreshToken();
-      if (res) {
-        dispatch(login(res));
-      }
-      setTimeout(() => setRefresh(true), 1000);
-    };
-
-    checkToken();
-  }, []);
-
-  if (!refresh) {
-    return (
-      <View style={styles.container}>
-        <Image
-          source={require('../asset/ihub-logo.png')} // Adjust the path as per your project structure
-          style={styles.logo}
-          resizeMode="contain"
-        />
-      </View>
-    );
-  }
+const AppNavigator: React.FC = observer(() => {
+  const {
+    authenticationStore: {isAuthenticated},
+  } = useStores();
 
   return (
     <NavigationContainer>
       <MainNavigator />
-      {/* {islogin ? <MainNavigator /> : <AuthNavigator />} */}
+      {/* {isAuthenticated ? <MainNavigator /> : <AuthNavigator />} */}
     </NavigationContainer>
   );
-};
+});
 
 export default AppNavigator;
 
-const styles = StyleSheet.create({
+const styles = StyleSheet.create<StylesType>({
   container: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  logo: {
+    // Add your logo styles here
   },
 });

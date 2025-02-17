@@ -221,14 +221,14 @@ class SyncManager {
           throw new Error('WebSocket disconnected during sync');
         }
 
-        this.ws.send(
-          JSON.stringify({
-            type: 'sync_data',
-            table: tableName,
-            data: data,
-            offset: progress.offset,
-          }),
-        );
+        const response = {
+          type: 'sync_data',
+          table: tableName,
+          data: data,
+          offset: progress.offset,
+        };
+
+        this.ws.send(JSON.stringify(response));
 
         progress.offset += this.branchSize;
       } catch (error) {

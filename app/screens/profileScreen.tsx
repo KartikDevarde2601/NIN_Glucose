@@ -1,7 +1,5 @@
 import React from 'react';
 import {SafeAreaView, StyleSheet, View, Alert, Text} from 'react-native';
-import NurseProfile from '../components/nurseProfile';
-import HeaderWithLogo from '../components/headerlogo';
 import {TextInput, Button} from 'react-native-paper';
 import {useState} from 'react';
 import {saveString, loadString} from '../utils/storage';
@@ -66,55 +64,23 @@ const ProfileScreen: React.FC<ProfileScreenProps> = () => {
   };
 
   return (
-    <SafeAreaView>
-      <HeaderWithLogo isShowInco={false} />
-      <NurseProfile
-        name={nurseData.name}
-        hospital={nurseData.hospital}
-        imageUrl={nurseData.imageUrl}
-      />
-      <View style={styles.inputContainer}>
-        <TextInput
-          mode="outlined"
-          label="IP Address"
-          value={IP}
-          onChangeText={(text: string) => setIP(text)}
-          style={styles.textInput}
-        />
-        <View style={styles.buttonContainer}>
-          <Button mode="outlined" onPress={handleSetIP} style={styles.button}>
-            set broker ip
-          </Button>
-          <Button
-            mode="outlined"
-            onPress={handleSyncData}
-            style={styles.button}
-            loading={loading}
-            disabled={loading}>
-            sync data
-          </Button>
-        </View>
-      </View>
-    </SafeAreaView>
+    <View style={styles.container}>
+      <Text style={styles.heading}>My Screen</Text>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  inputContainer: {
-    marginTop: 20,
-    paddingHorizontal: 16,
-  },
-  textInput: {
-    width: '100%',
-    marginBottom: 10,
-  },
-  button: {
-    margin: 10,
-  },
-  buttonContainer: {
-    flexDirection: 'row',
+  container: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#f8f9fa',
+  },
+  heading: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333',
   },
 });
 

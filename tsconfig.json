@@ -1,13 +1,17 @@
 {
-  "extends": "@react-native/typescript-config/tsconfig.json",
+  "extends": "@tsconfig/react-native/tsconfig.json",
   "compilerOptions": {
-    "skipLibCheck": true,
-    "baseUrl": ".",
+    "lib": ["ES2016", "DOM"],
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "strict": true,
+    "target": "ES5",
     "paths": {
-      "app/*": ["./app/*"],
-      "@nozbe/watermelondb/*":["..//../src/*"],
+      "@nozbe/watermelondb/*": ["../../src/*"]
     }
   },
-  "include": ["index.js", "App.tsx", "app", "types", "plugins", "app.config.ts", "node_modules/@shopify/flash-list"],
-  "exclude": ["node_modules"]
+  "include": [
+    "./**/*.ts",
+    "../../src/**/*.ts" 
+  ]
 }

@@ -1,13 +1,21 @@
+// schema.ts
 import {appSchema, tableSchema} from '@nozbe/watermelondb';
 
+export enum TableName {
+  PATIENTS = 'patients',
+  VISITS = 'visits',
+  CLINICALS = 'clinicals',
+}
+
 const schema = appSchema({
-  version: 10,
+  version: 1,
   tables: [
     tableSchema({
-      name: 'patients',
+      name: TableName.PATIENTS,
       columns: [
-        {name: 'name', type: 'string'},
-        {name: 'dateofBirth', type: 'string'},
+        {name: 'fullName', type: 'string'},
+        {name: 'email', type: 'string'},
+        {name: 'dateOfBirth', type: 'string'},
         {name: 'contactInformation', type: 'string'},
         {name: 'age', type: 'number'},
         {name: 'gender', type: 'string'},
@@ -15,22 +23,18 @@ const schema = appSchema({
         {name: 'weight', type: 'number'},
       ],
     }),
-
     tableSchema({
-      name: 'visits',
+      name: TableName.VISITS,
       columns: [
         {name: 'patient_id', type: 'string', isIndexed: true},
         {name: 'visitDate', type: 'string'},
-        {name: 'isClinicalCollected', type: 'boolean'},
-        {name: 'isDataCollected', type: 'boolean'},
         {name: 'visitNotes', type: 'string'},
       ],
     }),
-
     tableSchema({
-      name: 'clinics',
+      name: TableName.CLINICALS,
       columns: [
-        {name: 'visit_id', type: 'string'},
+        {name: 'visit_id', type: 'string', isIndexed: true},
         {name: 'bloodGroup', type: 'string'},
         {name: 'antigenStatus', type: 'string'},
         {name: 'systolic', type: 'number'},

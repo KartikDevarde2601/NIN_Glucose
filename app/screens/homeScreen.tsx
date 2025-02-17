@@ -1,8 +1,7 @@
-import React from 'react';
-import {View, StyleSheet, Text} from 'react-native';
-import {Button, TextInput, useTheme} from 'react-native-paper';
+import React, {useEffect, useState} from 'react';
+import {View, Text, StyleSheet} from 'react-native';
 
-const LoginScreen: React.FC = () => {
+const HomeScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.heading}>My Screen</Text>
@@ -23,5 +22,4 @@ const styles = StyleSheet.create({
     color: '#333',
   },
 });
-
-export default LoginScreen;
+export default HomeScreen;
