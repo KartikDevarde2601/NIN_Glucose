@@ -8,12 +8,29 @@ import {
 } from 'react-native';
 import {TextInput, Button, Text, SegmentedButtons} from 'react-native-paper';
 import {useForm, Controller} from 'react-hook-form';
+import {
+  useNavigation,
+  useRoute,
+  NavigationProp,
+} from '@react-navigation/native';
+import {database} from '../watermelodb/database';
+import {Clinical} from '../watermelodb/models/clinical';
+import {Patient} from '../watermelodb/models/patient';
+import {RootStackParamList} from '../navigation/appNavigation';
 
 const bloodGroupOptions = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 const smokingTypes = ['Never', 'Former', 'Current', 'Passive'];
 const alcoholTypes = ['Never', 'Occasional', 'Regular', 'Former'];
 
 const AddClinicalDataScreen = () => {
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+  const route = useRoute<{
+    key: string;
+    name: string;
+    params: {patientId: string};
+  }>();
+  const {patientId} = route.params;
+  console.log(patientId);
   const bloodGroupRow1 = bloodGroupOptions.slice(0, 4); // A+, A-, B+, B-
   const bloodGroupRow2 = bloodGroupOptions.slice(4); // AB+, AB-, O+, O-
 
@@ -42,9 +59,41 @@ const AddClinicalDataScreen = () => {
     },
   });
 
-  const onSubmit = data => {
-    console.log(data);
-    // Handle form submission
+  const onSubmit = async data => {
+    try {
+      await database.write(async () => {
+        const patient = await database.get('patients').find(patientId);
+        if (!patient) {
+          throw new Error(`Patient with ID ${patientId} not found`);
+        }
+
+        console.log('Patient found:', patient);
+
+        const newClinicals = await database.get('clinicals').create(record => {
+          const clinic = record as Clinical;
+          clinic.bloodGroup = data.bloodGroup;
+          clinic.antigenStatus = data.antigenStatus;
+          clinic.systolic = Number(data.systolic);
+          clinic.diastolic = Number(data.diastolic);
+          clinic.temperature = Number(data.temperature);
+          clinic.smokingType = data.smokingType;
+          clinic.overAllYearOfSmoking = data.overAllYearOfSmoking;
+          clinic.dailyConsumption = Number(data.dailyConsumption);
+          clinic.smokingIndex = Number(data.smokingIndex);
+          clinic.alcoholFreeDays = Number(data.alcoholFreeDays);
+          clinic.alcoholType = data.alcoholType;
+          clinic.alcoholConsumption = Number(data.alcoholConsumption);
+          clinic.hemoglobin = Number(data.hemoglobin);
+          clinic.reacentHealthIssue = data.reacentHealthIssue;
+          clinic.hereditaryHistory = data.hereditaryHistory;
+          clinic.patients.set(patient as Patient);
+        });
+        console.log(newClinicals);
+        navigation.navigate('hometabs');
+      });
+    } catch (error) {
+      console.error('Error creating clinical record:', error);
+    }
   };
 
   const smokingType = watch('smokingType');

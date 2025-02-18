@@ -18,6 +18,8 @@ import type {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import type {RootStackParamList} from '../navigation/appNavigation';
 import {useForm, Controller} from 'react-hook-form';
 import {DatePickerModal, registerTranslation} from 'react-native-paper-dates';
+import {database} from '../watermelodb/database';
+import {Patient} from '../watermelodb/models/patient';
 
 // Register the English locale
 registerTranslation('en', {
@@ -80,9 +82,22 @@ const NewPatientScreen = () => {
     [setVisible, setValue],
   );
 
-  const onSubmit = data => {
-    console.log(data);
-    navigation.navigate('addClinicalData', undefined);
+  const onSubmit = async data => {
+    await database.write(async () => {
+      const newPatient = await database.get('patients').create(record => {
+        const patient = record as Patient;
+        patient.fullName = data.fullName;
+        patient.email = data.email;
+        patient.dateOfBirth = data.dateOfBirth;
+        patient.contactInformation = data.contactInformation;
+        patient.age = Number(data.age);
+        patient.gender = data.gender;
+        patient.height = Number(data.height);
+        patient.weight = Number(data.weight);
+      });
+
+      navigation.navigate('addClinicalData', {patientId: newPatient.id});
+    });
   };
 
   return (

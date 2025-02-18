@@ -10,7 +10,7 @@ import {
 import {NavigationContainer} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {createMaterialBottomTabNavigator} from 'react-native-paper/react-navigation';
-import HomeScreen from '../screens/homeScreen';
+import HomeScreen from '../screens/HomeScreen/homeScreen';
 import LoginScreen from '../screens/loginScreen';
 import ProfileScreen from '../screens/profileScreen';
 import NewPatientScreen from '../screens/newPatientScreen';
@@ -29,7 +29,7 @@ import {
 export type RootStackParamList = {
   hometabs: undefined;
   patientDetail: {patientId: string};
-  addClinicalData: undefined;
+  addClinicalData: {patientId: string};
 };
 
 export type AuthStackParamList = {
@@ -54,6 +54,7 @@ const AuthStack = createNativeStackNavigator<AuthStackParamList>();
 
 const HomeTab: React.FC = () => (
   <Tab.Navigator
+    initialRouteName="home"
     activeColor="rgb(120, 69, 172)"
     barStyle={{backgroundColor: 'rgb(255, 251, 255)'}}>
     <Tab.Screen
@@ -99,7 +100,7 @@ const MainNavigator: React.FC = () => (
     <MainStack.Screen
       name="patientDetail"
       component={PatientDetailScreen}
-      options={{headerShown: true}}
+      options={{headerShown: false}}
     />
     <MainStack.Screen
       name="addClinicalData"

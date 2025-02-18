@@ -1,8 +1,14 @@
-// clinical.ts
-import {Model, Relation} from '@nozbe/watermelondb';
-import {field, readonly, date, relation} from '@nozbe/watermelondb/decorators';
+import {Model, Query, Relation} from '@nozbe/watermelondb';
+import {
+  field,
+  readonly,
+  date,
+  children,
+  relation,
+} from '@nozbe/watermelondb/decorators';
+import {Associations} from '@nozbe/watermelondb/Model';
 import {TableName} from '../schema';
-import {Visit} from './visit';
+import {Patient} from './patient';
 
 export class Clinical extends Model {
   static table = TableName.CLINICALS;
@@ -23,7 +29,7 @@ export class Clinical extends Model {
   @field('reacentHealthIssue') reacentHealthIssue!: string;
   @field('hereditaryHistory') hereditaryHistory!: string;
 
-  @relation(TableName.VISITS, 'visit_id') visit!: Relation<Visit>;
+  @relation(TableName.PATIENTS, 'patient_id') patients!: Relation<Patient>;
 
   @readonly @date('created_at') createdAt!: Date;
   @readonly @date('updated_at') updatedAt!: Date;

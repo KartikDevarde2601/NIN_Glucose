@@ -1,17 +1,21 @@
 // visit.ts
 import {Model, Relation} from '@nozbe/watermelondb';
 import {field, readonly, date, relation} from '@nozbe/watermelondb/decorators';
+import {Associations} from '@nozbe/watermelondb/Model';
 import {TableName} from '../schema';
 import {Patient} from './patient';
-import {Clinical} from './clinical';
 
 export class Visit extends Model {
   static table = TableName.VISITS;
 
+  static associations: Associations = {
+    [TableName.PATIENTS]: {type: 'belongs_to', key: 'patient_id'},
+  };
+
   @field('visitDate') visitDate!: string;
-  @field('visitNotes') visitNotes!: string; // Corrected typo: visitNote -> visitNotes
+  @field('visitNotes') visitNotes!: string;
+
   @relation(TableName.PATIENTS, 'patient_id') patient!: Relation<Patient>;
-  @relation(TableName.CLINICALS, 'visit_id') clinical!: Relation<Clinical>; // Changed to relation
 
   @readonly @date('created_at') createdAt!: Date;
   @readonly @date('updated_at') updatedAt!: Date;
