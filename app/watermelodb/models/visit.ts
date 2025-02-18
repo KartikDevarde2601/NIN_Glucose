@@ -14,6 +14,7 @@ export class Visit extends Model {
 
   @field('visitDate') visitDate!: string;
   @field('visitNotes') visitNotes!: string;
+  @field('visitType') visitType!: string;
 
   @relation(TableName.PATIENTS, 'patient_id') patient!: Relation<Patient>;
 

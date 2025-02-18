@@ -1,5 +1,5 @@
 import React, {FC, useState} from 'react';
-import {View, ScrollView, StyleSheet} from 'react-native';
+import {View, StyleSheet, FlatList} from 'react-native';
 import {
   Card,
   Text,
@@ -7,8 +7,12 @@ import {
   List,
   Avatar,
   Chip,
-  useTheme,
   Button,
+  IconButton,
+  Portal,
+  SegmentedButtons,
+  TextInput,
+  Modal,
 } from 'react-native-paper';
 import {withObservables} from '@nozbe/watermelondb/react';
 import {Patient} from '../watermelodb/models/patient';
@@ -16,17 +20,15 @@ import {Clinical} from '../watermelodb/models/clinical';
 import {format} from 'date-fns';
 import {RouteProp, useNavigation, useRoute} from '@react-navigation/native';
 import {database} from '../watermelodb/database';
-import {Q} from '@nozbe/watermelondb';
+import {Q, tableName} from '@nozbe/watermelondb';
 import {TableName} from '../watermelodb/schema';
-
-// Constants (Consider moving these to a separate config file if used elsewhere)
-const bloodGroupOptions = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
-const smokingTypes = ['Never', 'Former', 'Current', 'Passive'];
-const alcoholTypes = ['Never', 'Occasional', 'Regular', 'Former'];
+import {Visit} from '../watermelodb/models/visit';
+import {SafeAreaView} from 'react-native';
 
 type PatientDetailsProps = {
   patient: Patient;
   clinical: Clinical[];
+  visits: Visit[];
 };
 
 export type RootStackParamList = {
@@ -35,7 +37,6 @@ export type RootStackParamList = {
   addClinicalData: {patientId: string};
 };
 
-// Helper function to determine BP status (can be moved to utils if needed elsewhere)
 const getBPStatus = (systolic: number, diastolic: number) => {
   if (systolic < 120 && diastolic < 80)
     return {label: 'Normal', color: 'green'};
@@ -44,7 +45,6 @@ const getBPStatus = (systolic: number, diastolic: number) => {
   return {label: 'High', color: 'red'};
 };
 
-// Reusable InfoItem Component
 const InfoItem = ({
   label,
   value,
@@ -76,7 +76,6 @@ const InfoItem = ({
   </View>
 );
 
-// BasicInfoCard Component
 const BasicInfoCard = ({patient}: {patient: Patient}) => {
   const [showBasicInfoDetails, setShowBasicInfoDetails] = useState(false);
   return (
@@ -151,7 +150,6 @@ const BasicInfoCard = ({patient}: {patient: Patient}) => {
   );
 };
 
-// ClinicalInfoCard Component
 const ClinicalInfoCard = ({clinical}: {clinical: Clinical}) => {
   const [showClinicalInfoDetails, setShowClinicalInfoDetails] = useState(false);
   return (
@@ -259,48 +257,183 @@ const ClinicalInfoCard = ({clinical}: {clinical: Clinical}) => {
   );
 };
 
-// VisitHistoryCard Component (modularized but currently not in use in main screen)
-const VisitHistoryCard = ({patient}: {patient: Patient}) => {
+interface VisitHistoryCardProps {
+  visits: Visit[];
+  onPressAdd: () => void;
+}
+
+const VisitHistoryCard: React.FC<VisitHistoryCardProps> = ({
+  visits,
+  onPressAdd,
+}) => {
   return (
     <Card style={styles.card}>
       <Card.Title
         title="Visit History"
         left={props => <Avatar.Icon {...props} icon="calendar-clock" />}
+        right={props => (
+          <IconButton
+            {...props}
+            icon="plus"
+            onPress={onPressAdd}
+            mode="contained"
+            style={styles.addButton}
+          />
+        )}
       />
-      <Card.Content>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <View style={styles.visitsContainer}>
-            {patient.visits.slice().map((visit, index) => (
-              <Card key={index} style={styles.visitCard} mode="outlined">
-                <Card.Content>
-                  <Text variant="titleMedium">
-                    {format(visit.createdAt, 'MMM d,yyyy')}
-                  </Text>
+      <FlatList
+        data={visits}
+        keyExtractor={item => item.id}
+        scrollEnabled={false}
+        nestedScrollEnabled
+        renderItem={({item}) => (
+          <View style={styles.visitItemWrapper}>
+            <Card style={styles.visitCard} mode="outlined">
+              <Card.Content>
+                <View style={styles.row}>
+                  <View style={{flexDirection: 'row', gap: 10}}>
+                    <Avatar.Icon icon="calendar-clock" size={25} />
+                    <Text variant="titleMedium">
+                      {format(new Date(item.visitDate), 'MMM d, yyyy')}
+                    </Text>
+                  </View>
+
+                  <Chip style={styles.chip}>{item.visitType}</Chip>
+                </View>
+                <Divider style={styles.miniDivider} />
+                {item.visitNotes && (
                   <Text variant="bodySmall" style={styles.visitReason}>
-                    {visit?.reason}
+                    {item.visitNotes}
                   </Text>
-                  <Divider style={styles.miniDivider} />
-                  <Text variant="bodySmall" style={styles.visitStatus}>
-                    Status: {visit.status}
-                  </Text>
-                </Card.Content>
-              </Card>
-            ))}
+                )}
+              </Card.Content>
+            </Card>
           </View>
-        </ScrollView>
-      </Card.Content>
+        )}
+      />
     </Card>
   );
 };
 
-const PatientDetailsScreen: FC<PatientDetailsProps> = ({patient, clinical}) => {
-  console.log(clinical);
+interface AddVisitModalProps {
+  visible: boolean;
+  onDismiss: () => void;
+  patient: Patient;
+}
+
+const AddVisitModal: React.FC<AddVisitModalProps> = ({
+  visible,
+  onDismiss,
+  patient,
+}) => {
+  const [visitNotes, setVisitNotes] = useState('');
+  const [visitType, setVisitType] = useState('glucose');
+  const currentDate = new Date().toISOString();
+
+  const handleSubmit = async () => {
+    try {
+      const visitsCollection = database.get<Visit>(TableName.VISITS);
+      await database.write(async () => {
+        await visitsCollection.create(visit => {
+          visit.patient.set(patient);
+          visit.visitDate = new Date().toISOString();
+          visit.visitNotes = visitNotes;
+          visit.visitType = visitType;
+        });
+      });
+    } catch (error) {
+      console.error('Error creating visit:', error);
+    }
+  };
 
   return (
-    <ScrollView style={styles.container}>
-      <BasicInfoCard patient={patient} />
-      <ClinicalInfoCard clinical={clinical[0]} />
-    </ScrollView>
+    <Portal>
+      <Modal
+        visible={visible}
+        onDismiss={onDismiss}
+        contentContainerStyle={styles.modalContainer}>
+        <Card>
+          <Card.Title title="Add New Visit" />
+          <Card.Content>
+            <Text variant="bodyMedium" style={styles.dateText}>
+              Date: {format(new Date(currentDate), 'MMM d, yyyy')}
+            </Text>
+
+            <SegmentedButtons
+              value={visitType}
+              onValueChange={setVisitType}
+              buttons={[
+                {value: 'glucose', label: 'Glucose Load'},
+                {value: 'water', label: 'Water Load'},
+              ]}
+              style={styles.segmentedButtons}
+            />
+
+            <TextInput
+              mode="outlined"
+              label="Visit Notes"
+              value={visitNotes}
+              onChangeText={setVisitNotes}
+              multiline
+              numberOfLines={3}
+              style={styles.notesInput}
+            />
+
+            <View style={styles.buttonContainer}>
+              <Button mode="outlined" onPress={onDismiss} style={styles.button}>
+                Cancel
+              </Button>
+              <Button
+                mode="contained"
+                onPress={handleSubmit}
+                style={styles.button}>
+                Save
+              </Button>
+            </View>
+          </Card.Content>
+        </Card>
+      </Modal>
+    </Portal>
+  );
+};
+
+const PatientDetailsScreen: FC<PatientDetailsProps> = ({
+  patient,
+  clinical,
+  visits,
+}) => {
+  const [modalVisible, setModalVisible] = useState(false);
+
+  const sections = [
+    {key: 'basic', component: <BasicInfoCard patient={patient} />},
+    {key: 'clinical', component: <ClinicalInfoCard clinical={clinical[0]} />},
+    {
+      key: 'visits',
+      component: (
+        <VisitHistoryCard
+          visits={visits}
+          onPressAdd={() => setModalVisible(true)}
+        />
+      ),
+    },
+  ];
+
+  return (
+    <SafeAreaView style={{flex: 1}}>
+      <FlatList
+        data={sections}
+        renderItem={({item}) => item.component}
+        keyExtractor={item => item.key}
+        contentContainerStyle={styles.contentContainer}
+        style={styles.container}
+        showsVerticalScrollIndicator={false}
+      />
+      <AddVisitModal
+        visible={modalVisible}
+        onDismiss={() => setModalVisible(false)}
+        patient={patient}
+      />
+    </SafeAreaView>
   );
 };
 
@@ -309,8 +442,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
+  contentContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
   card: {
-    margin: 16,
+    marginBottom: 12,
     elevation: 2,
   },
   infoGrid: {
@@ -345,27 +482,56 @@ const styles = StyleSheet.create({
     marginVertical: 12,
   },
   miniDivider: {
-    marginVertical: 8,
-  },
-  visitsContainer: {
-    flexDirection: 'row',
-    gap: 12,
-    paddingBottom: 8,
-  },
-  visitCard: {
-    width: 200,
     marginVertical: 4,
   },
+  addButton: {
+    marginRight: 8,
+  },
+  modalContainer: {
+    margin: 20,
+  },
+  dateText: {
+    marginBottom: 16,
+  },
+  segmentedButtons: {
+    marginBottom: 16,
+  },
+  notesInput: {
+    marginBottom: 16,
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 8,
+  },
+  button: {
+    minWidth: 100,
+  },
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 4, // Added internal spacing
+  },
   visitReason: {
-    marginTop: 4,
+    marginTop: 8, // Increased from 4
     color: '#666',
   },
-  visitStatus: {
-    color: '#666',
+  visitItemWrapper: {
+    paddingHorizontal: 16, // Directly control horizontal spacing
+    paddingVertical: 4,
+  },
+  visitCard: {
+    marginVertical: 4,
+    borderRadius: 8,
+    // Remove any fixed width or conflicting margins
+    marginHorizontal: 0, // Reset horizontal margins
+  },
+  visitCardContent: {
+    paddingHorizontal: 16, // Add inner padding to card content
   },
 });
 
-// Connect the component to WatermelonDB
 const EnhancePatientDetailsScreen = withObservables(
   ['route'],
   ({route}: {route: RouteProp<RootStackParamList, 'patientDetail'>}) => ({
@@ -376,6 +542,9 @@ const EnhancePatientDetailsScreen = withObservables(
       .get<Clinical>(TableName.CLINICALS)
       .query(Q.where('patient_id', route.params.patientId))
       .observe(),
+    visits: database.collections
+      .get<Visit>(TableName.VISITS)
+      .query(Q.where('patient_id', route.params.patientId)),
   }),
 )(PatientDetailsScreen);
 

@@ -8,7 +8,7 @@ export enum TableName {
 }
 
 const schema = appSchema({
-  version: 3,
+  version: 4,
   tables: [
     tableSchema({
       name: TableName.PATIENTS,
@@ -29,6 +29,7 @@ const schema = appSchema({
         {name: 'patient_id', type: 'string', isIndexed: true},
         {name: 'visitDate', type: 'string'},
         {name: 'visitNotes', type: 'string'},
+        {name: 'visitType', type: 'string'},
       ],
     }),
     tableSchema({
