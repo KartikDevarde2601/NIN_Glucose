@@ -1,14 +1,16 @@
 // schema.ts
 import {appSchema, tableSchema} from '@nozbe/watermelondb';
+import {string} from 'mobx-state-tree/dist/internal';
 
 export enum TableName {
   PATIENTS = 'patients',
   VISITS = 'visits',
   CLINICALS = 'clinicals',
+  INTERVALS = 'intervals',
 }
 
 const schema = appSchema({
-  version: 4,
+  version: 5,
   tables: [
     tableSchema({
       name: TableName.PATIENTS,
@@ -21,6 +23,8 @@ const schema = appSchema({
         {name: 'gender', type: 'string'},
         {name: 'height', type: 'number'},
         {name: 'weight', type: 'number'},
+        {name: 'created_at', type: 'number'},
+        {name: 'updated_at', type: 'number'},
       ],
     }),
     tableSchema({
@@ -30,6 +34,21 @@ const schema = appSchema({
         {name: 'visitDate', type: 'string'},
         {name: 'visitNotes', type: 'string'},
         {name: 'visitType', type: 'string'},
+        {name: 'created_at', type: 'number'},
+        {name: 'updated_at', type: 'number'},
+      ],
+    }),
+    tableSchema({
+      name: TableName.INTERVALS,
+      columns: [
+        {name: 'visit_id', type: 'string', isIndexed: true},
+        {name: 'intervalType', type: 'string'},
+        {name: 'interval_tag', type: 'number'},
+        {name: 'configuration', type: 'string'},
+        {name: 'frequencies', type: 'string'},
+        {name: 'dataPoints', type: 'string'},
+        {name: 'created_at', type: 'number'},
+        {name: 'updated_at', type: 'number'},
       ],
     }),
     tableSchema({
@@ -51,6 +70,8 @@ const schema = appSchema({
         {name: 'hemoglobin', type: 'number'},
         {name: 'reacentHealthIssue', type: 'string'},
         {name: 'hereditaryHistory', type: 'string'},
+        {name: 'created_at', type: 'number'},
+        {name: 'updated_at', type: 'number'},
       ],
     }),
   ],

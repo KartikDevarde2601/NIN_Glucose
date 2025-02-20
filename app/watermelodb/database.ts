@@ -5,6 +5,7 @@ import {setGenerator} from '@nozbe/watermelondb/utils/common/randomId';
 import {Patient} from './models/patient';
 import {Visit} from './models/visit';
 import {Clinical} from './models/clinical';
+import {Interval} from './models/interval';
 import schema from './schema';
 
 const adapter = new SQLiteAdapter({
@@ -18,7 +19,7 @@ const adapter = new SQLiteAdapter({
 
 export const database = new Database({
   adapter,
-  modelClasses: [Patient, Visit, Clinical],
+  modelClasses: [Patient, Visit, Clinical, Interval],
 });
 
 //setGenerator(() => Crypto.randomUUID());

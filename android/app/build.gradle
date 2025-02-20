@@ -85,6 +85,9 @@ android {
     }
      packagingOptions {
      pickFirst '**/libc++_shared.so' // ⬅️ This (if missing)
+      resources {
+            excludes.add("META-INF/*")
+        }
   }
     signingConfigs {
         debug {

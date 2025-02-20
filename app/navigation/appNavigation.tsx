@@ -16,6 +16,9 @@ import ProfileScreen from '../screens/profileScreen';
 import NewPatientScreen from '../screens/newPatientScreen';
 import PatientDetailScreen from '../screens/patientDetailScreen';
 import AddClinicalDataScreen from '../screens/addClinicalDataScreen';
+import enhanceIntervalListScreen from '../screens/intervalScreen';
+import BioImpedanceScreen from '../screens/BioImpedanceScreen/bioImpededanceScreen';
+import EcgScreen from '../screens/EcgScreen.ts/ecgScreen';
 import {load} from '../utils/storage';
 import {useStores} from '../models';
 import {FontAwesomeIcon} from '@fortawesome/react-native-fontawesome';
@@ -30,6 +33,9 @@ export type RootStackParamList = {
   hometabs: undefined;
   patientDetail: {patientId: string};
   addClinicalData: {patientId: string};
+  intervalList: {visit_id: string};
+  bioImpedance: undefined;
+  ecg: undefined;
 };
 
 export type AuthStackParamList = {
@@ -105,6 +111,21 @@ const MainNavigator: React.FC = () => (
     <MainStack.Screen
       name="addClinicalData"
       component={AddClinicalDataScreen}
+      options={{headerShown: false}}
+    />
+    <MainStack.Screen
+      name="intervalList"
+      component={enhanceIntervalListScreen}
+      options={{headerShown: false}}
+    />
+    <MainStack.Screen
+      name="bioImpedance"
+      component={BioImpedanceScreen}
+      options={{headerShown: false}}
+    />
+    <MainStack.Screen
+      name="ecg"
+      component={EcgScreen}
       options={{headerShown: false}}
     />
   </MainStack.Navigator>

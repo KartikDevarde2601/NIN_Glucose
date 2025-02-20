@@ -1,5 +1,4 @@
 import {open, DB} from '@op-engineering/op-sqlite';
-import {TABLE} from './db_table';
 
 export class DatabaseService {
   private readonly db_config = {
@@ -23,49 +22,13 @@ export class DatabaseService {
       this.database = await open(this.db_config);
       if (this.database) {
         await this.database.execute(
-          `CREATE TABLE IF NOT EXISTS ${TABLE.biosensor_data} (
+          `CREATE TABLE IF NOT EXISTS sensor_data (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         time INTEGER DEFAULT 0,
                         visit_id TEXT,
                         config TEXT,
                         frequency INTEGER,
                         sensorType TEXT DEFAULT 'bioSensor',
-                        data TEXT,
-                        is_synced INTEGER DEFAULT 0,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                    );
-                    
-                    CREATE TABLE IF NOT EXISTS ${TABLE.temperature_data} (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        time INTEGER DEFAULT 0,
-                        visit_id TEXT,
-                        sensor_type TEXT DEFAULT 'temSensor',
-                        config TEXT,
-                        frequency INTEGER,
-                        data TEXT,
-                        is_synced INTEGER DEFAULT 0,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                    );
-    
-                    CREATE TABLE IF NOT EXISTS ${TABLE.glucose_data} (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        time INTEGER DEFAULT 0,
-                        visit_id TEXT,
-                        sensor_type TEXT DEFAULT 'gluSensor',
-                        config TEXT,
-                        frequency INTEGER,
-                        data TEXT,
-                        is_synced INTEGER DEFAULT 0,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                    );
-    
-                    CREATE TABLE IF NOT EXISTS ${TABLE.gsr_data} (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        time INTEGER DEFAULT 0,
-                        visit_id TEXT,
-                        sensor_type TEXT DEFAULT 'gsrSensor',
-                        config TEXT,
-                        frequency INTEGER,
                         data TEXT,
                         is_synced INTEGER DEFAULT 0,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

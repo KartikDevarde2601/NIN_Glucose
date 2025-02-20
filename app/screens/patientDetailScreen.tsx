@@ -18,23 +18,23 @@ import {withObservables} from '@nozbe/watermelondb/react';
 import {Patient} from '../watermelodb/models/patient';
 import {Clinical} from '../watermelodb/models/clinical';
 import {format} from 'date-fns';
-import {RouteProp, useNavigation, useRoute} from '@react-navigation/native';
+import {
+  RouteProp,
+  useNavigation,
+  useRoute,
+  NavigationProp,
+} from '@react-navigation/native';
 import {database} from '../watermelodb/database';
 import {Q, tableName} from '@nozbe/watermelondb';
 import {TableName} from '../watermelodb/schema';
 import {Visit} from '../watermelodb/models/visit';
 import {SafeAreaView} from 'react-native';
+import {RootStackParamList} from '../navigation/appNavigation';
 
 type PatientDetailsProps = {
   patient: Patient;
   clinical: Clinical[];
   visits: Visit[];
-};
-
-export type RootStackParamList = {
-  hometabs: undefined;
-  patientDetail: {patientId: string};
-  addClinicalData: {patientId: string};
 };
 
 const getBPStatus = (systolic: number, diastolic: number) => {
@@ -260,11 +260,13 @@ const ClinicalInfoCard = ({clinical}: {clinical: Clinical}) => {
 interface VisitHistoryCardProps {
   visits: Visit[];
   onPressAdd: () => void;
+  onPressVisit: (visit: Visit) => void;
 }
 
 const VisitHistoryCard: React.FC<VisitHistoryCardProps> = ({
   visits,
   onPressAdd,
+  onPressVisit,
 }) => {
   return (
     <Card style={styles.card}>
@@ -297,15 +299,21 @@ const VisitHistoryCard: React.FC<VisitHistoryCardProps> = ({
                       {format(new Date(item.visitDate), 'MMM d, yyyy')}
                     </Text>
                   </View>
-
                   <Chip style={styles.chip}>{item.visitType}</Chip>
                 </View>
                 <Divider style={styles.miniDivider} />
-                {item.visitNotes && (
-                  <Text variant="bodySmall" style={styles.visitReason}>
+                <View style={{flexDirection: 'row', alignItems: 'flex-start'}}>
+                  <Text
+                    variant="bodySmall"
+                    style={[styles.visitReason, {flex: 1}]}>
                     {item.visitNotes}
                   </Text>
-                )}
+                  <IconButton
+                    icon="chevron-right"
+                    size={20}
+                    onPress={() => onPressVisit(item)}
+                  />
+                </View>
               </Card.Content>
             </Card>
           </View>
@@ -404,6 +412,12 @@ const PatientDetailsScreen: FC<PatientDetailsProps> = ({
 }) => {
   const [modalVisible, setModalVisible] = useState(false);
 
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+
+  const handleOnClickVisit = (visit: Visit) => {
+    navigation.navigate('intervalList', {visit_id: visit.id});
+  };
+
   const sections = [
     {key: 'basic', component: <BasicInfoCard patient={patient} />},
     {key: 'clinical', component: <ClinicalInfoCard clinical={clinical[0]} />},
@@ -413,6 +427,7 @@ const PatientDetailsScreen: FC<PatientDetailsProps> = ({
         <VisitHistoryCard
           visits={visits}
           onPressAdd={() => setModalVisible(true)}
+          onPressVisit={handleOnClickVisit}
         />
       ),
     },

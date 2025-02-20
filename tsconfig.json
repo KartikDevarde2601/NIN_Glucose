@@ -1,7 +1,7 @@
 {
   "extends": "@tsconfig/react-native/tsconfig.json",
   "compilerOptions": {
-    "lib": ["ES2016", "DOM"],
+    "lib": ["ES2017", "DOM"],
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "strict": true,
@@ -13,5 +13,5 @@
   "include": [
     "./**/*.ts",
     "../../src/**/*.ts" 
-  ]
+, "app/screens/BioImpedanceScreen"  ]
 }
