@@ -302,14 +302,11 @@ const NewPatientScreen = () => {
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 16,
-    paddingVertical: 16,
     flex: 1,
     backgroundColor: '#f8f9fa',
   },
   scrollContent: {
-    gap: 10,
-    paddingHorizontal: 10,
+    padding: 16,
   },
   heading: {
     fontSize: 24,
