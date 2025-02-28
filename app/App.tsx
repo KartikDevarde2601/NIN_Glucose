@@ -10,9 +10,11 @@ import {database} from './watermelodb/database';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import {AppState, AppStateStatus} from 'react-native';
 import {DatabaseService} from './op-sqllite/databaseService';
+import {useStores} from './models';
 
 const App: React.FC = () => {
   const dbService = useMemo(() => DatabaseService.getInstance(), []);
+  const {mqtt} = useStores();
 
   useEffect(() => {
     try {

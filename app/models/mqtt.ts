@@ -13,7 +13,6 @@ import {
 } from '@kartik2601/rn-mqtt-android';
 import {MqttClient} from '@kartik2601/rn-mqtt-android/dist/Mqtt/MqttClient';
 import {rawdata, Topic} from './topic';
-import {number} from 'mobx-state-tree/dist/internal';
 import {Interval} from '../watermelodb/models/interval';
 
 // Enum for connection status
@@ -237,7 +236,7 @@ export const MqttStore = types
   }))
   .actions(self => ({
     afterCreate() {
-      self.initializeClient();
+      self.initializeClient().then(() => {});
     },
   }));
 export interface Mqtt extends Instance<typeof MqttStore> {}

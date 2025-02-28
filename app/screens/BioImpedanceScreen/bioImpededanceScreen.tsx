@@ -1,6 +1,12 @@
-import React from 'react';
+import React, {useEffect} from 'react';
 import {FC} from 'react';
-import {SafeAreaView, Dimensions, View, StyleSheet} from 'react-native';
+import {
+  SafeAreaView,
+  Dimensions,
+  View,
+  StyleSheet,
+  TouchableOpacity,
+} from 'react-native';
 import {
   Text,
   Appbar,
@@ -12,16 +18,22 @@ import {
 } from 'react-native-paper';
 import {useTheme} from 'react-native-paper';
 import {RealTimeGraphBio} from './RealtimeGraphBio';
+import {useStores} from '../../models';
+import {observer} from 'mobx-react-lite';
+import {useEventListeners} from '../../hook/useEventListernMqtt';
 
 const DEFAULT_WIDTH = Dimensions.get('screen').width - 50;
 
 type BioImpedanceScreenProps = {};
 
-const BioImpedanceScreen: FC<BioImpedanceScreenProps> = () => {
+const BioImpedanceScreen: FC<BioImpedanceScreenProps> = observer(() => {
   const theme = useTheme();
   const _goBack = () => {
     console.log('back');
   };
+
+  const {mqtt} = useStores();
+  useEventListeners(mqtt.client!);
 
   return (
     <SafeAreaView style={{flex: 1, backgroundColor: theme.colors.background}}>
@@ -40,9 +52,15 @@ const BioImpedanceScreen: FC<BioImpedanceScreenProps> = () => {
             color: theme.colors.onPrimaryContainer,
           }}
         />
-        <View style={styles.headerRight}>
-          <Icon source="access-point" size={30} color="green" />
-        </View>
+        <TouchableOpacity
+          style={styles.headerRight}
+          onPress={() => mqtt.connect()}>
+          <Icon
+            source="access-point"
+            size={30}
+            color={mqtt.isconnected ? 'green' : 'red'}
+          />
+        </TouchableOpacity>
       </Appbar.Header>
 
       {/* Divider*/}
@@ -59,21 +77,21 @@ const BioImpedanceScreen: FC<BioImpedanceScreenProps> = () => {
 
       {/* Graph Containers */}
       <View style={styles.graphsWrapper}>
-        <Surface style={styles.graphContainer} elevation={2}>
+        {/* <Surface style={styles.graphContainer} elevation={2}>
           <RealTimeGraphBio
             value={10}
             title="Impedance graph"
             graphColor="#1E88E5"
           />
-        </Surface>
+        </Surface> */}
 
-        <Surface style={styles.graphContainer} elevation={2}>
+        {/* <Surface style={styles.graphContainer} elevation={2}>
           <RealTimeGraphBio
             value={10}
             title="phase Angle graph"
             graphColor="#FDD835"
           />
-        </Surface>
+        </Surface> */}
       </View>
 
       {/* Control Buttons */}
@@ -105,7 +123,7 @@ const BioImpedanceScreen: FC<BioImpedanceScreenProps> = () => {
       </View>
     </SafeAreaView>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {
