@@ -14,6 +14,7 @@ import {
 import {MqttClient} from '@kartik2601/rn-mqtt-android/dist/Mqtt/MqttClient';
 import {rawdata, Topic} from './topic';
 import {Interval} from '../watermelodb/models/interval';
+import {MqttOptionsModel} from './mqttOptions';
 
 // Enum for connection status
 export enum ConnectionStatus {
@@ -43,7 +44,7 @@ export const MqttStore = types
     host: types.string,
     isconnected: types.optional(types.boolean, false),
     port: types.optional(types.number, 1883),
-    options: types.optional(types.frozen(), {}),
+    options: types.optional(MqttOptionsModel, {}),
     currentSessionName: types.optional(types.string, ''),
     status: types.optional(
       types.enumeration('ConnectionStatus', Object.values(ConnectionStatus)),
@@ -177,7 +178,6 @@ export const MqttStore = types
               payload as unknown as rawdata,
               self.currentInterval.visit.id,
               self.currentInterval.interval_tag,
-              self.currentInterval.interval,
             );
           }
         },

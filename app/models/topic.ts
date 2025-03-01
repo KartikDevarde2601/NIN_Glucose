@@ -47,16 +47,10 @@ export const TopicModel = types
       self.Issubscribed = !self.Issubscribed;
     },
 
-    addMessage(
-      message: rawdata,
-      visit_id: string,
-      interval_tag: number,
-      interval: number,
-    ) {
+    addMessage(message: rawdata, visit_id: string, interval_tag: number) {
       const data: sensor_data = {
         visit_id: visit_id,
         interval_tag: interval_tag,
-        interval: interval,
         config: message.config,
         frequency: message.frequency,
         time: message.time,

@@ -4,7 +4,6 @@ export interface sensor_data {
   id?: number;
   visit_id: string;
   interval_tag: number;
-  interval: number;
   config: string;
   frequency: number;
   time: number;
