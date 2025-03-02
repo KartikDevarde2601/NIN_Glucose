@@ -8,7 +8,7 @@ export const RootStoreModel = types.model('RootStore').props({
   authenticationStore: types.optional(AuthenticationStoreModel, {}),
   mqtt: types.optional(MqttStore, {
     clientId: 'Mobileclient',
-    host: '10.2.216.208',
+    host: '192.168.97.149',
     port: 1883,
     options: {},
   }),

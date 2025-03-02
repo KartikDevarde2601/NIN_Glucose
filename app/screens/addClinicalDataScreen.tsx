@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState} from 'react';
 import {
   View,
   StyleSheet,
@@ -12,11 +12,13 @@ import {
   useNavigation,
   useRoute,
   NavigationProp,
+  RouteProp,
 } from '@react-navigation/native';
 import {database} from '../watermelodb/database';
 import {Clinical} from '../watermelodb/models/clinical';
 import {Patient} from '../watermelodb/models/patient';
 import {RootStackParamList} from '../navigation/appNavigation';
+import {Alert} from 'react-native';
 
 const bloodGroupOptions = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 const smokingTypes = ['Never', 'Former', 'Current', 'Passive'];
@@ -24,13 +26,11 @@ const alcoholTypes = ['Never', 'Occasional', 'Regular', 'Former'];
 
 const AddClinicalDataScreen = () => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
-  const route = useRoute<{
-    key: string;
-    name: string;
-    params: {patientId: string};
-  }>();
-  const {patientId} = route.params;
-  console.log(patientId);
+  const route = useRoute<RouteProp<RootStackParamList, 'addClinicalData'>>();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const {patientForm} = route.params;
+
   const bloodGroupRow1 = bloodGroupOptions.slice(0, 4); // A+, A-, B+, B-
   const bloodGroupRow2 = bloodGroupOptions.slice(4); // AB+, AB-, O+, O-
 
@@ -59,40 +59,85 @@ const AddClinicalDataScreen = () => {
     },
   });
 
-  const onSubmit = async data => {
+  const onSubmit = async (clinicalData: any): Promise<void> => {
+    if (isSubmitting) return;
+
+    setIsSubmitting(true);
+
     try {
+      // Use the write method to start a transaction
       await database.write(async () => {
-        const patient = await database.get('patients').find(patientId);
-        if (!patient) {
-          throw new Error(`Patient with ID ${patientId} not found`);
-        }
+        const newPatient = await database
+          .get('patients')
+          .prepareCreate((records: any) => {
+            const patient = records as Patient;
+            patient.fullName = patientForm.fullName;
+            patient.email = patientForm.email;
+            patient.dateOfBirth = patientForm.dateOfBirth;
+            patient.contactInformation = patientForm.contactInformation;
+            patient.age = Number(patientForm.age);
+            patient.gender = patientForm.gender;
+            patient.height = Number(patientForm.height);
+            patient.weight = Number(patientForm.weight);
+          });
 
-        console.log('Patient found:', patient);
+        // Then prepare the clinical data creation with a relation to the patient
+        const clinic = await database
+          .get('clinicals')
+          .prepareCreate((record: any) => {
+            const clinicalRecord = record as Clinical;
+            clinicalRecord.bloodGroup = clinicalData.bloodGroup;
+            clinicalRecord.antigenStatus = clinicalData.antigenStatus;
+            clinicalRecord.systolic = Number(clinicalData.systolic || 0);
+            clinicalRecord.diastolic = Number(clinicalData.diastolic || 0);
+            clinicalRecord.temperature = Number(clinicalData.temperature || 0);
+            clinicalRecord.smokingType = clinicalData.smokingType || 'Never';
+            clinicalRecord.overAllYearOfSmoking =
+              clinicalData.overAllYearOfSmoking || '';
+            clinicalRecord.dailyConsumption = Number(
+              clinicalData.dailyConsumption || 0,
+            );
+            clinicalRecord.smokingIndex = Number(
+              clinicalData.smokingIndex || 0,
+            );
+            clinicalRecord.alcoholFreeDays = Number(
+              clinicalData.alcoholFreeDays || 0,
+            );
+            clinicalRecord.alcoholType = clinicalData.alcoholType || 'Never';
+            clinicalRecord.alcoholConsumption = Number(
+              clinicalData.alcoholConsumption || 0,
+            );
+            clinicalRecord.hemoglobin = Number(clinicalData.hemoglobin || 0);
+            clinicalRecord.reacentHealthIssue =
+              clinicalData.reacentHealthIssue || '';
+            clinicalRecord.hereditaryHistory =
+              clinicalData.hereditaryHistory || '';
+            clinicalRecord.patient.set(newPatient as Patient);
+          });
 
-        const newClinicals = await database.get('clinicals').create(record => {
-          const clinic = record as Clinical;
-          clinic.bloodGroup = data.bloodGroup;
-          clinic.antigenStatus = data.antigenStatus;
-          clinic.systolic = Number(data.systolic);
-          clinic.diastolic = Number(data.diastolic);
-          clinic.temperature = Number(data.temperature);
-          clinic.smokingType = data.smokingType;
-          clinic.overAllYearOfSmoking = data.overAllYearOfSmoking;
-          clinic.dailyConsumption = Number(data.dailyConsumption);
-          clinic.smokingIndex = Number(data.smokingIndex);
-          clinic.alcoholFreeDays = Number(data.alcoholFreeDays);
-          clinic.alcoholType = data.alcoholType;
-          clinic.alcoholConsumption = Number(data.alcoholConsumption);
-          clinic.hemoglobin = Number(data.hemoglobin);
-          clinic.reacentHealthIssue = data.reacentHealthIssue;
-          clinic.hereditaryHistory = data.hereditaryHistory;
-          clinic.patients.set(patient as Patient);
-        });
-        console.log(newClinicals);
-        navigation.navigate('hometabs');
+        // Execute the batch operations
+        await database.batch(newPatient, clinic);
       });
-    } catch (error) {
-      console.error('Error creating clinical record:', error);
+
+      // Only show success if transaction completed successfully
+      Alert.alert(
+        'Success',
+        'Patient and medical information saved successfully',
+        [
+          {
+            text: 'OK',
+            onPress: () => navigation.navigate('hometabs', {screen: 'home'}),
+          },
+        ],
+      );
+    } catch (error: any) {
+      console.error('Error in transaction:', error);
+
+      Alert.alert('Error', 'Failed to save data. Please try again.', [
+        {text: 'OK'},
+      ]);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 

@@ -29,7 +29,7 @@ export class Clinical extends Model {
   @field('reacentHealthIssue') reacentHealthIssue!: string;
   @field('hereditaryHistory') hereditaryHistory!: string;
 
-  @relation(TableName.PATIENTS, 'patient_id') patients!: Relation<Patient>;
+  @relation(TableName.PATIENTS, 'patient_id') patient!: Relation<Patient>;
 
   @readonly @date('created_at') createdAt!: Date;
   @readonly @date('updated_at') updatedAt!: Date;

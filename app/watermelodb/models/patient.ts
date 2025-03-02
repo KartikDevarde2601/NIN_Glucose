@@ -14,8 +14,9 @@ import {Clinical} from './clinical';
 export class Patient extends Model {
   static table = TableName.PATIENTS;
 
+  // In Patient model (has-one clinical):
   static associations: Associations = {
-    [TableName.CLINICALS]: {type: 'belongs_to', key: 'patient_id'}, // Fixed
+    [TableName.CLINICALS]: {type: 'belongs_to', key: 'patient_id'}, // Changed to has_one
     [TableName.VISITS]: {type: 'has_many', foreignKey: 'patient_id'},
   };
 

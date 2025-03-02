@@ -21,7 +21,6 @@ import BioImpedanceScreen from '../screens/BioImpedanceScreen/bioImpededanceScre
 import EcgScreen from '../screens/EcgScreen.ts/ecgScreen';
 
 import {SettingScreen} from '../screens/settingScreen';
-import {load} from '../utils/storage';
 import {useStores} from '../models';
 import {FontAwesomeIcon} from '@fortawesome/react-native-fontawesome';
 import {observer} from 'mobx-react-lite';
@@ -35,10 +34,10 @@ import {
 export type RootStackParamList = {
   hometabs: undefined;
   patientDetail: {patientId: string};
-  addClinicalData: {patientId: string};
+  addClinicalData: {patientForm: Record<string, any>};
   intervalList: {visit_id: string};
-  bioImpedance: undefined;
-  ecg: undefined;
+  bioImpedance: {interval_id: string};
+  ecg: {interval_id: string};
 };
 
 export type AuthStackParamList = {
@@ -88,7 +87,7 @@ const HomeTab: React.FC = () => (
       }}
     />
     <Tab.Screen
-      name="profile"
+      name="setting"
       component={SettingScreen}
       options={{
         tabBarLabel: 'setting',
@@ -134,7 +133,7 @@ const MainNavigator: React.FC = () => (
     />
     <MainStack.Screen
       name="bioImpedance"
-      component={BioImpedanceScreen}
+      component={BioImpedanceScreen as React.ComponentType}
       options={{headerShown: false}}
     />
     <MainStack.Screen

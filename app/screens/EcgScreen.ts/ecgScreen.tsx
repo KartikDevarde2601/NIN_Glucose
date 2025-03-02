@@ -11,7 +11,6 @@ import {
   Divider,
 } from 'react-native-paper';
 import {useTheme} from 'react-native-paper';
-import {RealTimeGraphBio} from '../BioImpedanceScreen/RealtimeGraphBio';
 
 const DEFAULT_WIDTH = Dimensions.get('screen').width - 50;
 
@@ -59,13 +58,13 @@ const EcgScreen: FC<BioImpedanceScreenProps> = () => {
 
       {/* Graph Containers */}
       <View style={styles.graphsWrapper}>
-        <Surface style={styles.graphContainer} elevation={2}>
+        {/* <Surface style={styles.graphContainer} elevation={2}>
           <RealTimeGraphBio
             value={10}
             title="Impedance graph"
             graphColor="#1E88E5"
           />
-        </Surface>
+        </Surface> */}
       </View>
 
       {/* Control Buttons */}

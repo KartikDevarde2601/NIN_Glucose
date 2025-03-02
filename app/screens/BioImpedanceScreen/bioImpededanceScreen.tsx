@@ -1,4 +1,4 @@
-import React, {useEffect} from 'react';
+import React, {useEffect, useState} from 'react';
 import {FC} from 'react';
 import {
   SafeAreaView,
@@ -17,23 +17,129 @@ import {
   Divider,
 } from 'react-native-paper';
 import {useTheme} from 'react-native-paper';
-import {RealTimeGraphBio} from './RealtimeGraphBio';
 import {useStores} from '../../models';
 import {observer} from 'mobx-react-lite';
 import {useEventListeners} from '../../hook/useEventListernMqtt';
+import {RootStackParamList} from '../../navigation/appNavigation';
+import {RouteProp} from '@react-navigation/native';
+import {Interval} from '../../watermelodb/models/interval';
+import {database} from '../../watermelodb/database';
+import {sensorRepository} from '../../op-sqllite/sensorRepository';
+import {sensor_data} from '../../op-sqllite/sensorRepository';
+import SimpleGraph from './simplegraph';
+import GraphScreen from './graph';
+import {DataPoint} from './graph';
+
+enum MqttQos {
+  AT_MOST_ONCE = 0,
+  AT_LEAST_ONCE = 1,
+  EXACTLY_ONCE = 2,
+}
 
 const DEFAULT_WIDTH = Dimensions.get('screen').width - 50;
 
-type BioImpedanceScreenProps = {};
+interface BioImpedanceScreenProps extends RootStackParamList {
+  route: RouteProp<RootStackParamList, 'bioImpedance'>;
+}
 
-const BioImpedanceScreen: FC<BioImpedanceScreenProps> = observer(() => {
+const sensor = new sensorRepository();
+
+const BioImpedanceScreen: FC<BioImpedanceScreenProps> = observer(({route}) => {
   const theme = useTheme();
   const _goBack = () => {
     console.log('back');
   };
-
   const {mqtt} = useStores();
+  const [interval, setInterval] = useState<Interval | undefined>(undefined);
+  const [numPoints, setnumPoints] = useState<DataPoint[]>([]);
+  const [isSubscribe, setIsSubscribe] = useState<boolean>(false);
+
+  // Get visit_id from route params
+  const interval_id = route.params.interval_id;
+
+  useEffect(() => {
+    const fetchInterval = async () => {
+      try {
+        const interval = (await database.collections
+          .get('intervals')
+          .find(interval_id)) as Interval;
+        setInterval(interval);
+      } catch (error) {
+        console.error('Error fetching interval:', error);
+      }
+    };
+
+    fetchInterval();
+  }, [interval_id]);
+
   useEventListeners(mqtt.client!);
+
+  const publish = (topic: string, payload: any) => {
+    const paylaod = {
+      topic: topic,
+      payload: payload,
+    };
+    mqtt.client?.publish(paylaod).then(ack => {
+      console.log(`publish topic with ack ${ack}`);
+    });
+  };
+
+  const constructPayloadString = (interval: Interval): string => {
+    const frequencies = interval?.frequencies
+      ? JSON.parse(interval.frequencies)
+      : null;
+
+    const configies = interval?.configuration
+      ? JSON.parse(interval.configuration)
+      : null;
+
+    const sensorType = 'bioImpedance';
+    const config = configies?.configuration?.join(',') || ''; // Convert array to comma-separated string
+    const frequency = frequencies?.frequencies?.join(',') || ''; // Convert array to comma-separated string
+    const datapoints = interval?.dataPoints || '100';
+
+    return `${sensorType}:${config}:${frequency}:${datapoints}`;
+  };
+
+  const start = () => {
+    if (interval) {
+      const payload = constructPayloadString(interval);
+      console.log(payload);
+      publish('global/command_devices', payload);
+    } else {
+      console.log('interval is undefined');
+    }
+  };
+
+  const subscribeToBIO = async () => {
+    if (mqtt.client) {
+      mqtt.client.subscribe({
+        topic: 'nin/bioimpedance',
+        qos: MqttQos.EXACTLY_ONCE,
+        onSuccess: ack => {
+          setIsSubscribe(true);
+        },
+        onError: error => {
+          setIsSubscribe(false);
+        },
+        onEvent: ({payload}) => {
+          const dataObject = JSON.parse(payload);
+          setnumPoints(dataObject.data);
+
+          const data: sensor_data = {
+            visit_id: interval?.visit.id,
+            interval_tag: interval?.interval_tag ?? 0,
+            config: dataObject.config,
+            frequency: dataObject.frequency,
+            time: dataObject.time,
+            sensor_type: dataObject.sensor_type,
+            data: JSON.stringify(dataObject.data),
+          };
+          sensor.insertSensordata(data, 'sensor_data');
+        },
+      });
+    }
+  };
 
   return (
     <SafeAreaView style={{flex: 1, backgroundColor: theme.colors.background}}>
@@ -52,15 +158,26 @@ const BioImpedanceScreen: FC<BioImpedanceScreenProps> = observer(() => {
             color: theme.colors.onPrimaryContainer,
           }}
         />
-        <TouchableOpacity
-          style={styles.headerRight}
-          onPress={() => mqtt.connect()}>
-          <Icon
-            source="access-point"
-            size={30}
-            color={mqtt.isconnected ? 'green' : 'red'}
-          />
-        </TouchableOpacity>
+        <View style={{flex: 1, flexDirection: 'row'}}>
+          <TouchableOpacity
+            style={styles.headerRight}
+            onPress={() => mqtt.connect()}>
+            <Icon
+              source="access-point"
+              size={30}
+              color={mqtt.isconnected ? 'green' : 'red'}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.headerRight}
+            onPress={() => subscribeToBIO()}>
+            <Icon
+              source="access-point"
+              size={30}
+              color={isSubscribe ? 'green' : 'red'}
+            />
+          </TouchableOpacity>
+        </View>
       </Appbar.Header>
 
       {/* Divider*/}
@@ -71,32 +188,35 @@ const BioImpedanceScreen: FC<BioImpedanceScreenProps> = observer(() => {
           Glucose Load
         </Chip>
         <Chip icon="clock-time-eight" mode="outlined" style={styles.chip}>
-          0 Interval
+          {interval ? `${interval.interval_tag}-interval` : 'No tag'}
         </Chip>
       </View>
 
       {/* Graph Containers */}
       <View style={styles.graphsWrapper}>
-        {/* <Surface style={styles.graphContainer} elevation={2}>
-          <RealTimeGraphBio
-            value={10}
-            title="Impedance graph"
-            graphColor="#1E88E5"
+        <Surface style={styles.graphContainer} elevation={2}>
+          <SimpleGraph
+            data={numPoints.map(point => point.bioImpedance)}
+            title="BioImpedance"
+            graphColor="#ff6b6b"
+            formatYLabel={v => `$${v.toFixed(2)}`}
+            formatXLabel={i => `${i} ms`}
           />
-        </Surface> */}
-
-        {/* <Surface style={styles.graphContainer} elevation={2}>
-          <RealTimeGraphBio
-            value={10}
-            title="phase Angle graph"
-            graphColor="#FDD835"
+        </Surface>
+        <Surface style={styles.graphContainer} elevation={2}>
+          <SimpleGraph
+            data={numPoints.map(point => point.phaseAngle)}
+            title="PhaseAngel"
+            graphColor="#ff6b6b"
+            formatYLabel={v => `$${v.toFixed(2)}`}
+            formatXLabel={i => `${i} ms`}
           />
-        </Surface> */}
+        </Surface>
       </View>
-
       {/* Control Buttons */}
       <View style={[styles.buttonContainer]}>
         <Button
+          onPress={() => start()}
           mode="contained"
           icon="play"
           style={styles.button}

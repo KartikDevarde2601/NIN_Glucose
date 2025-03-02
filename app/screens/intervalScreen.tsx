@@ -146,21 +146,21 @@ const AddIntervalModal: React.FC<AddIntervalModalProps> = ({
                 {
                   labelStyle: styles.segmentedButtonLabel,
                   style: styles.ConfigSegmentButton,
-                  value: 'UpperBody',
+                  value: 'UPPERBODY',
                   label: 'Upper Body',
                   showSelectedCheck: true,
                 },
                 {
                   labelStyle: styles.segmentedButtonLabel,
                   style: styles.ConfigSegmentButton,
-                  value: 'LowerBody',
+                  value: 'LOWERBODY',
                   label: 'Lower Body',
                   showSelectedCheck: true,
                 },
                 {
                   labelStyle: styles.segmentedButtonLabel,
                   style: styles.ConfigSegmentButton,
-                  value: 'LeftBody',
+                  value: 'LEFTBODY',
                   label: 'Left Body',
                   showSelectedCheck: true,
                 },
@@ -175,14 +175,14 @@ const AddIntervalModal: React.FC<AddIntervalModalProps> = ({
                 {
                   labelStyle: styles.segmentedButtonLabel,
                   style: styles.ConfigSegmentButton,
-                  value: 'RightBody',
+                  value: 'RIGHTBODY',
                   label: 'Right Body',
                   showSelectedCheck: true,
                 },
                 {
                   labelStyle: styles.segmentedButtonLabel,
                   style: styles.ConfigSegmentButton,
-                  value: 'FullBody',
+                  value: 'FULLBODY',
                   label: 'Full Body',
                   showSelectedCheck: true,
                 },
@@ -290,13 +290,13 @@ const VisitHistoryCard: React.FC<VisitHistoryCardProps> = ({
                       gap: 5,
                     }}>
                     {JSON.parse(item.configuration).configuration.map(
-                      config => (
+                      (config: string) => (
                         <Chip
                           textStyle={{fontSize: 12}}
                           key={config}
                           style={styles.chipConfig}
                           mode="outlined">
-                          {config}
+                          {config.toLocaleLowerCase()}
                         </Chip>
                       ),
                     )}
@@ -326,9 +326,9 @@ const IntervalListScreen: React.FC<IntervalListScreenProps> = ({
 
   const handleOnClickVisit = (interval: Interval) => {
     if (interval.intervalType == 'BioImpedance') {
-      navigation.navigate('bioImpedance', undefined);
+      navigation.navigate('bioImpedance', {interval_id: interval.id});
     } else if (interval.intervalType == 'ECG-Other') {
-      navigation.navigate('ecg', undefined);
+      navigation.navigate('ecg', {interval_id: interval.id});
     }
   };
 
@@ -408,7 +408,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   chipConfig: {
-    height: 30,
+    height: 32,
   },
   miniDivider: {
     marginVertical: 4,
