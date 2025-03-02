@@ -1,25 +1,107 @@
-import React from 'react';
+import React, {useEffect, useState} from 'react';
 import {FC} from 'react';
-import {SafeAreaView, Dimensions, View, StyleSheet} from 'react-native';
+import {
+  SafeAreaView,
+  Dimensions,
+  View,
+  StyleSheet,
+  TouchableOpacity,
+} from 'react-native';
 import {
   Text,
   Appbar,
   Chip,
   Button,
-  Surface,
   Icon,
   Divider,
+  Surface,
 } from 'react-native-paper';
 import {useTheme} from 'react-native-paper';
-
+import {RootStackParamList} from '../../navigation/appNavigation';
+import {RouteProp} from '@react-navigation/native';
+import {Interval} from '../../watermelodb/models/interval';
+import {database} from '../../watermelodb/database';
+import SimpleGraph from './graphECG';
+import {useStores} from '../../models';
+import {sensorRepository} from '../../op-sqllite/sensorRepository';
+import {sensor_data} from '../../op-sqllite/sensorRepository';
 const DEFAULT_WIDTH = Dimensions.get('screen').width - 50;
 
-type BioImpedanceScreenProps = {};
+const sensor = new sensorRepository();
 
-const EcgScreen: FC<BioImpedanceScreenProps> = () => {
+enum MqttQos {
+  AT_MOST_ONCE = 0,
+  AT_LEAST_ONCE = 1,
+  EXACTLY_ONCE = 2,
+}
+
+interface EcgScreenProps extends RootStackParamList {
+  route: RouteProp<RootStackParamList, 'ecg'>;
+}
+
+interface DataPointECG {
+  ecg: number;
+  time: number;
+}
+
+const EcgScreen: FC<EcgScreenProps> = ({route}) => {
+  const [interval, setInterval] = useState<Interval | undefined>(undefined);
+  const [numPoints, setnumPoints] = useState<DataPointECG[]>([]);
+  const [isSubscribe, setIsSubscribe] = useState<boolean>(false);
+
+  // Get visit_id from route params
+  const interval_id = route.params.interval_id;
+
+  const {mqtt} = useStores();
+
   const theme = useTheme();
   const _goBack = () => {
     console.log('back');
+  };
+
+  useEffect(() => {
+    const fetchInterval = async () => {
+      try {
+        const interval = (await database.collections
+          .get('intervals')
+          .find(interval_id)) as Interval;
+        setInterval(interval);
+      } catch (error) {
+        console.error('Error fetching interval:', error);
+      }
+    };
+
+    fetchInterval();
+  }, [interval_id]);
+
+  const subscribeToBIO = async () => {
+    if (mqtt.client) {
+      mqtt.client.subscribe({
+        topic: 'nin/ecg',
+        qos: MqttQos.EXACTLY_ONCE,
+        onSuccess: ack => {
+          setIsSubscribe(true);
+        },
+        onError: error => {
+          setIsSubscribe(false);
+        },
+        onEvent: ({payload}) => {
+          const dataObject = JSON.parse(payload);
+          setnumPoints(dataObject.data);
+
+          const data: sensor_data = {
+            visit_id: interval?.visit.id,
+            interval_tag: interval?.interval_tag ?? 0,
+            config: dataObject.config,
+            frequency: dataObject.frequency,
+            time: dataObject.time,
+            sensor_type: dataObject.sensor_type,
+            data: JSON.stringify(dataObject.data),
+          };
+          sensor.insertSensordata(data, 'sensor_data');
+        },
+      });
+    }
   };
 
   return (
@@ -39,8 +121,25 @@ const EcgScreen: FC<BioImpedanceScreenProps> = () => {
             color: theme.colors.onPrimaryContainer,
           }}
         />
-        <View style={styles.headerRight}>
-          <Icon source="access-point" size={30} color="green" />
+        <View style={{flex: 1, flexDirection: 'row'}}>
+          <TouchableOpacity
+            style={styles.headerRight}
+            onPress={() => mqtt.connect()}>
+            <Icon
+              source="access-point"
+              size={30}
+              color={mqtt.isconnected ? 'green' : 'red'}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.headerRight}
+            onPress={() => subscribeToBIO()}>
+            <Icon
+              source="access-point"
+              size={30}
+              color={isSubscribe ? 'green' : 'red'}
+            />
+          </TouchableOpacity>
         </View>
       </Appbar.Header>
 
@@ -52,19 +151,21 @@ const EcgScreen: FC<BioImpedanceScreenProps> = () => {
           Glucose Load
         </Chip>
         <Chip icon="clock-time-eight" mode="outlined" style={styles.chip}>
-          15 Interval
+          Time
         </Chip>
       </View>
 
       {/* Graph Containers */}
       <View style={styles.graphsWrapper}>
-        {/* <Surface style={styles.graphContainer} elevation={2}>
-          <RealTimeGraphBio
-            value={10}
-            title="Impedance graph"
-            graphColor="#1E88E5"
+        <Surface style={styles.graphContainer} elevation={2}>
+          <SimpleGraph
+            data={numPoints.map(point => point.ecg)}
+            title="ECG"
+            graphColor="#ff6b6b"
+            formatYLabel={v => `$${v.toFixed(2)}`}
+            formatXLabel={i => `${i}`}
           />
-        </Surface> */}
+        </Surface>
       </View>
 
       {/* Control Buttons */}

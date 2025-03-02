@@ -55,7 +55,7 @@ const AddIntervalModal: React.FC<AddIntervalModalProps> = ({
   };
 
   const [numberofDataPoint, setnumberofDataPoint] = useState<string>('');
-  const [intervalType, setIntervalType] = useState('BioImpedance');
+  const [intervalType, setIntervalType] = useState('ECG-Other');
   const [selectedConfig, setSelectedConfig] = useState<string[]>([]);
   const [count, setCount] = useState(
     calculateMinuteDifference(visit.visitDate),
@@ -137,88 +137,97 @@ const AddIntervalModal: React.FC<AddIntervalModalProps> = ({
               onChangeText={setnumberofDataPoint}
               style={styles.notesInput}
             />
-            <SegmentedButtons
-              multiSelect
-              value={selectedConfig}
-              onValueChange={setSelectedConfig}
-              style={styles.segmentedButtons}
-              buttons={[
-                {
-                  labelStyle: styles.segmentedButtonLabel,
-                  style: styles.ConfigSegmentButton,
-                  value: 'UPPERBODY',
-                  label: 'Upper Body',
-                  showSelectedCheck: true,
-                },
-                {
-                  labelStyle: styles.segmentedButtonLabel,
-                  style: styles.ConfigSegmentButton,
-                  value: 'LOWERBODY',
-                  label: 'Lower Body',
-                  showSelectedCheck: true,
-                },
-                {
-                  labelStyle: styles.segmentedButtonLabel,
-                  style: styles.ConfigSegmentButton,
-                  value: 'LEFTBODY',
-                  label: 'Left Body',
-                  showSelectedCheck: true,
-                },
-              ]}
-            />
-            <SegmentedButtons
-              multiSelect
-              value={selectedConfig}
-              onValueChange={setSelectedConfig}
-              style={styles.segmentedButtons}
-              buttons={[
-                {
-                  labelStyle: styles.segmentedButtonLabel,
-                  style: styles.ConfigSegmentButton,
-                  value: 'RIGHTBODY',
-                  label: 'Right Body',
-                  showSelectedCheck: true,
-                },
-                {
-                  labelStyle: styles.segmentedButtonLabel,
-                  style: styles.ConfigSegmentButton,
-                  value: 'FULLBODY',
-                  label: 'Full Body',
-                  showSelectedCheck: true,
-                },
-              ]}
-            />
-            <View
-              style={[
-                styles.chipContainer,
-                {paddingHorizontal: frequencies.length < 0 ? 0 : 10},
-              ]}>
-              {frequencies.map(item => (
-                <Chip
-                  key={item}
-                  style={styles.chip}
-                  onClose={() => handleRemoveFrequency(item)}>
-                  {item}
-                </Chip>
-              ))}
-            </View>
+            {intervalType == 'BioImpedance' ? (
+              <>
+                <SegmentedButtons
+                  multiSelect
+                  value={selectedConfig}
+                  onValueChange={setSelectedConfig}
+                  style={styles.segmentedButtons}
+                  buttons={[
+                    {
+                      labelStyle: styles.segmentedButtonLabel,
+                      style: styles.ConfigSegmentButton,
+                      value: 'UPPERBODY',
+                      label: 'Upper Body',
+                      showSelectedCheck: true,
+                    },
+                    {
+                      labelStyle: styles.segmentedButtonLabel,
+                      style: styles.ConfigSegmentButton,
+                      value: 'LOWERBODY',
+                      label: 'Lower Body',
+                      showSelectedCheck: true,
+                    },
+                    {
+                      labelStyle: styles.segmentedButtonLabel,
+                      style: styles.ConfigSegmentButton,
+                      value: 'LEFTBODY',
+                      label: 'Left Body',
+                      showSelectedCheck: true,
+                    },
+                  ]}
+                />
+                <SegmentedButtons
+                  multiSelect
+                  value={selectedConfig}
+                  onValueChange={setSelectedConfig}
+                  style={styles.segmentedButtons}
+                  buttons={[
+                    {
+                      labelStyle: styles.segmentedButtonLabel,
+                      style: styles.ConfigSegmentButton,
+                      value: 'RIGHTBODY',
+                      label: 'Right Body',
+                      showSelectedCheck: true,
+                    },
+                    {
+                      labelStyle: styles.segmentedButtonLabel,
+                      style: styles.ConfigSegmentButton,
+                      value: 'FULLBODY',
+                      label: 'Full Body',
+                      showSelectedCheck: true,
+                    },
+                  ]}
+                />
+              </>
+            ) : null}
+            {intervalType == 'BioImpedance' ? (
+              <>
+                <View
+                  style={[
+                    styles.chipContainer,
+                    {paddingHorizontal: frequencies.length < 0 ? 0 : 10},
+                  ]}>
+                  {frequencies.map(item => (
+                    <Chip
+                      key={item}
+                      style={styles.chip}
+                      onClose={() => handleRemoveFrequency(item)}>
+                      {item}
+                    </Chip>
+                  ))}
+                </View>
 
-            <View style={styles.inputRow}>
-              <TextInput
-                mode="outlined"
-                label="Frequency"
-                value={frequency}
-                onChangeText={setFrequency}
-                style={styles.input}
-                keyboardType="numeric"
-              />
-              <Button
-                mode="outlined"
-                onPress={handleAddFrequency}
-                style={styles.button}>
-                Add
-              </Button>
-            </View>
+                <View style={styles.inputRow}>
+                  <TextInput
+                    mode="outlined"
+                    label="Frequency"
+                    value={frequency}
+                    onChangeText={setFrequency}
+                    style={styles.input}
+                    keyboardType="numeric"
+                  />
+                  <Button
+                    mode="outlined"
+                    onPress={handleAddFrequency}
+                    style={styles.button}>
+                    Add
+                  </Button>
+                </View>
+              </>
+            ) : null}
+
             <View style={styles.buttonContainer}>
               <Button mode="outlined" onPress={onDismiss} style={styles.button}>
                 Cancel
@@ -312,6 +321,9 @@ const VisitHistoryCard: React.FC<VisitHistoryCardProps> = ({
           </View>
         )}
       />
+      <View style={{paddingHorizontal: 20, paddingVertical: 20}}>
+        <Button mode="contained">generate CSV</Button>
+      </View>
     </Card>
   );
 };

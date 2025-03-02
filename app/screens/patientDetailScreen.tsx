@@ -349,6 +349,7 @@ const AddVisitModal: React.FC<AddVisitModalProps> = ({
           visit.visitType = visitType;
         });
       });
+      onDismiss();
     } catch (error) {
       console.error('Error creating visit:', error);
     }

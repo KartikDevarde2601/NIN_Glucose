@@ -56,7 +56,7 @@ const ProfileScreen = () => {
           <View style={styles.avatarContainer}>
             <Avatar.Image
               size={100}
-              source={require('../asset/images.png')}
+              source={require('../assets/images.png')}
               style={styles.avatar}
             />
             <View style={styles.onlineBadge} />

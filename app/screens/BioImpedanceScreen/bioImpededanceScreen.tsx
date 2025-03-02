@@ -26,9 +26,8 @@ import {Interval} from '../../watermelodb/models/interval';
 import {database} from '../../watermelodb/database';
 import {sensorRepository} from '../../op-sqllite/sensorRepository';
 import {sensor_data} from '../../op-sqllite/sensorRepository';
-import SimpleGraph from './simplegraph';
-import GraphScreen from './graph';
-import {DataPoint} from './graph';
+import SimpleGraph from './graphBIO';
+import {DataPoint} from './graphBIO';
 
 enum MqttQos {
   AT_MOST_ONCE = 0,

@@ -138,7 +138,7 @@ const MainNavigator: React.FC = () => (
     />
     <MainStack.Screen
       name="ecg"
-      component={EcgScreen}
+      component={EcgScreen as React.ComponentType}
       options={{headerShown: false}}
     />
   </MainStack.Navigator>

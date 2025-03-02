@@ -12,6 +12,7 @@
   },
   "include": [
     "./**/*.ts",
-    "../../src/**/*.ts" 
+    "../../src/**/*.ts" ,
+    "app/types/assets.d.ts"
 , "app/screens/BioImpedanceScreen"  ]
 }

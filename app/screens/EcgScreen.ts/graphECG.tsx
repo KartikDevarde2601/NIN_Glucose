@@ -1,3 +1,4 @@
+import React from 'react';
 import {
   Canvas,
   Group,
@@ -10,11 +11,13 @@ import {curveBumpX, scaleLinear, line, format} from 'd3';
 import {useMemo, FC, memo} from 'react';
 import {Dimensions, View, ViewStyle} from 'react-native';
 import {Text} from 'react-native-paper';
-import type {DependencyList} from 'react';
-import type {NumberValue, ScaleLinear} from 'd3';
-
 // Import font (you need to add a font file in assets/fonts)
-import fontSource from '../../asset/Roboto-Thin.ttf';
+import fontSource from '../../assets/Roboto-Thin.ttf';
+
+export interface DataPoint {
+  ecg: number;
+  time: number;
+}
 
 interface SimpleGraphProps {
   data: number[];
@@ -49,7 +52,7 @@ const SimpleGraph: FC<SimpleGraphProps> = memo(
     height = DEFAULT_HEIGHT,
     width = DEFAULT_WIDTH,
     formatYLabel = formatDefaultYLabel,
-    formatXLabel = v => v.toString(),
+    formatXLabel = (v: any) => v.toString(),
   }) => {
     // Load font
     const axisFont = useFont(fontSource, 10);
@@ -96,7 +99,9 @@ const SimpleGraph: FC<SimpleGraphProps> = memo(
         <View style={$graphWrapper}>
           <Text variant="titleMedium">{title}</Text>
           <View style={[$graphContainer, {height, width}]}>
-            <Text style={{color: '#666'}}>No data available</Text>
+            <View style={$noDataContainer}>
+              <Text style={$noDataText}>No data available</Text>
+            </View>
           </View>
         </View>
       );
@@ -209,9 +214,21 @@ const $graphWrapper: ViewStyle = {
 };
 
 const $graphContainer: ViewStyle = {
+  alignItems: 'center',
+  justifyContent: 'center',
   backgroundColor: '#f0f0f0',
   borderRadius: 8,
   overflow: 'hidden',
+};
+
+const $noDataContainer: ViewStyle = {
+  justifyContent: 'center',
+  alignItems: 'center',
+};
+
+const $noDataText = {
+  color: '#666',
+  fontSize: 16,
 };
 
 export default SimpleGraph;
