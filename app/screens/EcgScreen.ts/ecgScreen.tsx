@@ -74,10 +74,10 @@ const EcgScreen: FC<EcgScreenProps> = ({route}) => {
     fetchInterval();
   }, [interval_id]);
 
-  const subscribeToBIO = async () => {
+  const subscribeToECG = async () => {
     if (mqtt.client) {
       mqtt.client.subscribe({
-        topic: 'nin/ecg',
+        topic: 'ecg',
         qos: MqttQos.EXACTLY_ONCE,
         onSuccess: ack => {
           setIsSubscribe(true);
@@ -102,6 +102,16 @@ const EcgScreen: FC<EcgScreenProps> = ({route}) => {
         },
       });
     }
+  };
+
+  const publish = (topic: string, payload: any) => {
+    const paylaod = {
+      topic: topic,
+      payload: payload,
+    };
+    mqtt.client?.publish(paylaod).then(ack => {
+      console.log(`publish topic with ack ${ack}`);
+    });
   };
 
   return (
@@ -133,7 +143,7 @@ const EcgScreen: FC<EcgScreenProps> = ({route}) => {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.headerRight}
-            onPress={() => subscribeToBIO()}>
+            onPress={() => subscribeToECG()}>
             <Icon
               source="access-point"
               size={30}
@@ -171,6 +181,7 @@ const EcgScreen: FC<EcgScreenProps> = ({route}) => {
       {/* Control Buttons */}
       <View style={[styles.buttonContainer]}>
         <Button
+          onPress={() => publish('nin/ecg', 'start')}
           mode="contained"
           icon="play"
           style={styles.button}
@@ -178,6 +189,7 @@ const EcgScreen: FC<EcgScreenProps> = ({route}) => {
           Start
         </Button>
         <Button
+          onPress={() => publish('nin/ecg', 'stop')}
           mode="contained"
           icon="stop"
           style={styles.button}
