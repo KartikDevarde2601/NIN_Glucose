@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useState, useMemo} from 'react';
 import {View, StyleSheet} from 'react-native';
 import PatientListScreen from './patientList';
 import {Patient} from '../../watermelodb/models/patient';
@@ -6,11 +6,23 @@ import {useNavigation, NavigationProp} from '@react-navigation/native';
 import {RootStackParamList} from '../../navigation/appNavigation';
 import {Searchbar} from 'react-native-paper';
 import {database} from '../../watermelodb/database';
+import {DatabaseService, OP_DB_TABLE} from '../../op-sqllite/databaseService';
 
 const HomeScreen: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
+  const dbService = useMemo(() => DatabaseService.getInstance(), []);
 
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const results = await dbService.execute(
+        `SELECT * FROM ${OP_DB_TABLE.bioSensor}`,
+      );
+      console.log(results);
+    };
+    fetchData();
+  }, []);
 
   return (
     <View style={styles.container}>

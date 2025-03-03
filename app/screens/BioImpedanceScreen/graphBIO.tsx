@@ -95,19 +95,6 @@ const SimpleGraph: FC<SimpleGraphProps> = memo(
     const xAxisY = height - 20;
     const yAxisX = 30;
 
-    if (!data?.length) {
-      return (
-        <View style={$graphWrapper}>
-          <Text variant="titleMedium">{title}</Text>
-          <View style={[$graphContainer, {height, width}]}>
-            <View style={$noDataContainer}>
-              <Text style={$noDataText}>No data available</Text>
-            </View>
-          </View>
-        </View>
-      );
-    }
-
     return (
       <View style={$graphWrapper}>
         <Text variant="titleMedium">{title}</Text>

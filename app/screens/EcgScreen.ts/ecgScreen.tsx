@@ -7,15 +7,7 @@ import {
   StyleSheet,
   TouchableOpacity,
 } from 'react-native';
-import {
-  Text,
-  Appbar,
-  Chip,
-  Button,
-  Icon,
-  Divider,
-  Surface,
-} from 'react-native-paper';
+import {Appbar, Chip, Button, Icon, Divider, Surface} from 'react-native-paper';
 import {useTheme} from 'react-native-paper';
 import {RootStackParamList} from '../../navigation/appNavigation';
 import {RouteProp} from '@react-navigation/native';
@@ -23,11 +15,14 @@ import {Interval} from '../../watermelodb/models/interval';
 import {database} from '../../watermelodb/database';
 import SimpleGraph from './graphECG';
 import {useStores} from '../../models';
-import {sensorRepository} from '../../op-sqllite/sensorRepository';
-import {sensor_data} from '../../op-sqllite/sensorRepository';
+import {
+  SensorRepository,
+  EcgSensorData,
+  EcgData,
+} from '../../op-sqllite/sensorRepository';
 const DEFAULT_WIDTH = Dimensions.get('screen').width - 50;
 
-const sensor = new sensorRepository();
+const sensor = new SensorRepository();
 
 enum MqttQos {
   AT_MOST_ONCE = 0,
@@ -85,20 +80,24 @@ const EcgScreen: FC<EcgScreenProps> = ({route}) => {
         onError: error => {
           setIsSubscribe(false);
         },
-        onEvent: ({payload}) => {
+        onEvent: async ({payload}) => {
           const dataObject = JSON.parse(payload);
-          setnumPoints(dataObject.data);
+          const interval_tag = interval?.interval_tag ?? 0;
+          const values = dataObject.data;
 
-          const data: sensor_data = {
-            visit_id: interval?.visit.id,
-            interval_tag: interval?.interval_tag ?? 0,
-            config: dataObject.config,
-            frequency: dataObject.frequency,
-            time: dataObject.time,
-            sensor_type: dataObject.sensor_type,
-            data: JSON.stringify(dataObject.data),
-          };
-          sensor.insertSensordata(data, 'sensor_data');
+          const visit_id = interval?.visit.id;
+          const data: EcgSensorData[] = values.map((value: EcgData) => {
+            return {
+              visit_id: visit_id,
+              interval_tag: interval_tag,
+              time: value.time,
+              ecg: value.ecg,
+            };
+          });
+          const result = await sensor.bulkInsertEcgSensorData(data);
+          if (result) {
+            setnumPoints(values);
+          }
         },
       });
     }

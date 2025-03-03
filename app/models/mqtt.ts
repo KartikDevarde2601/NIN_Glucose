@@ -31,14 +31,6 @@ export enum MqttQos {
   EXACTLY_ONCE = 2,
 }
 
-interface Subscription {
-  remove: () => void;
-}
-
-const generateRandomId = () => {
-  return Math.random().toString(36).substring(2, 6);
-};
-
 // MQTT Store Model
 export const MqttStore = types
   .model('MqttStore')

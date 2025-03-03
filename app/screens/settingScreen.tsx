@@ -4,6 +4,7 @@ import {useForm, Controller} from 'react-hook-form';
 import {Button, TextInput, Switch, Text, Surface} from 'react-native-paper';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useStores} from '../models';
+import {MqttConfig} from '@kartik2601/rn-mqtt-android';
 
 export const SettingScreen = () => {
   const {mqtt} = useStores();
@@ -18,7 +19,12 @@ export const SettingScreen = () => {
     },
   });
 
-  const onSubmit = data => {
+  const onSubmit = (data: {
+    clientId: string;
+    host: string;
+    port: string;
+    option: any;
+  }) => {
     mqtt.editConfig({...data, port: Number(data.port)});
   };
 

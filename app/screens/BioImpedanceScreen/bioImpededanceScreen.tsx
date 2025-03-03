@@ -24,8 +24,11 @@ import {RootStackParamList} from '../../navigation/appNavigation';
 import {RouteProp} from '@react-navigation/native';
 import {Interval} from '../../watermelodb/models/interval';
 import {database} from '../../watermelodb/database';
-import {sensorRepository} from '../../op-sqllite/sensorRepository';
-import {sensor_data} from '../../op-sqllite/sensorRepository';
+import {
+  SensorRepository,
+  BioSensorData,
+  BioData,
+} from '../../op-sqllite/sensorRepository';
 import SimpleGraph from './graphBIO';
 import {DataPoint} from './graphBIO';
 
@@ -41,7 +44,7 @@ interface BioImpedanceScreenProps extends RootStackParamList {
   route: RouteProp<RootStackParamList, 'bioImpedance'>;
 }
 
-const sensor = new sensorRepository();
+const sensor = new SensorRepository();
 
 const BioImpedanceScreen: FC<BioImpedanceScreenProps> = observer(({route}) => {
   const theme = useTheme();
@@ -50,7 +53,7 @@ const BioImpedanceScreen: FC<BioImpedanceScreenProps> = observer(({route}) => {
   };
   const {mqtt} = useStores();
   const [interval, setInterval] = useState<Interval | undefined>(undefined);
-  const [numPoints, setnumPoints] = useState<DataPoint[]>([]);
+  const [numPoints, setnumPoints] = useState<DataPoint[]>([]); // Initialize with empty array
   const [isSubscribe, setIsSubscribe] = useState<boolean>(false);
 
   // Get visit_id from route params
@@ -123,18 +126,26 @@ const BioImpedanceScreen: FC<BioImpedanceScreenProps> = observer(({route}) => {
         },
         onEvent: ({payload}) => {
           const dataObject = JSON.parse(payload);
-          setnumPoints(dataObject.data);
+          console.log(dataObject);
+          const config = dataObject.config;
+          const frequency = dataObject.freq;
+          const interval_tag = interval?.interval_tag ?? 0;
+          const values = dataObject.data;
 
-          const data: sensor_data = {
-            visit_id: interval?.visit.id,
-            interval_tag: interval?.interval_tag ?? 0,
-            config: dataObject.config,
-            frequency: dataObject.frequency,
-            time: dataObject.time,
-            sensor_type: dataObject.sensor_type,
-            data: JSON.stringify(dataObject.data),
-          };
-          sensor.insertSensordata(data, 'sensor_data');
+          const visit_id = interval?.visit.id;
+          const data: BioSensorData[] = values?.map((value: BioData) => {
+            return {
+              time: value.time,
+              visit_id: visit_id,
+              interval_tag: interval_tag,
+              config: config,
+              frequency: frequency,
+              bioImpedance: value.bioImpedance,
+              phaseAngle: value.phaseAngle,
+            };
+          });
+          sensor.bulkInsertBioSensorData(data);
+          setnumPoints(values);
         },
       });
     }
@@ -195,20 +206,20 @@ const BioImpedanceScreen: FC<BioImpedanceScreenProps> = observer(({route}) => {
       <View style={styles.graphsWrapper}>
         <Surface style={styles.graphContainer} elevation={2}>
           <SimpleGraph
-            data={numPoints.map(point => point.bioImpedance)}
+            data={numPoints?.map(point => point.bioImpedance)}
             title="BioImpedance"
             graphColor="#ff6b6b"
             formatYLabel={v => `$${v.toFixed(2)}`}
-            formatXLabel={i => `${i} ms`}
+            formatXLabel={i => `${i}`}
           />
         </Surface>
         <Surface style={styles.graphContainer} elevation={2}>
           <SimpleGraph
-            data={numPoints.map(point => point.phaseAngle)}
+            data={numPoints?.map(point => point.phaseAngle)}
             title="PhaseAngel"
             graphColor="#ff6b6b"
             formatYLabel={v => `$${v.toFixed(2)}`}
-            formatXLabel={i => `${i} ms`}
+            formatXLabel={i => `${i}`}
           />
         </Surface>
       </View>
