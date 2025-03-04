@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useState, useMemo} from 'react';
 import {FC} from 'react';
 import {
   SafeAreaView,
@@ -31,6 +31,8 @@ import {
 } from '../../op-sqllite/sensorRepository';
 import SimpleGraph from './graphBIO';
 import {DataPoint} from './graphBIO';
+import {create_csv_andSave} from '../../utils/csvgenerator';
+import {DatabaseService, OP_DB_TABLE} from '../../op-sqllite/databaseService';
 
 enum MqttQos {
   AT_MOST_ONCE = 0,
@@ -55,6 +57,11 @@ const BioImpedanceScreen: FC<BioImpedanceScreenProps> = observer(({route}) => {
   const [interval, setInterval] = useState<Interval | undefined>(undefined);
   const [numPoints, setnumPoints] = useState<DataPoint[]>([]); // Initialize with empty array
   const [isSubscribe, setIsSubscribe] = useState<boolean>(false);
+  const [isCollecting, setIsCollecting] = useState<boolean>(false);
+  const [completed, setCompleted] = useState<boolean>(false);
+  const [isGeneratingCsv, setIsGeneratingCsv] = useState<boolean>(false);
+
+  const dbService = useMemo(() => DatabaseService.getInstance(), []);
 
   // Get visit_id from route params
   const interval_id = route.params.interval_id;
@@ -76,16 +83,6 @@ const BioImpedanceScreen: FC<BioImpedanceScreenProps> = observer(({route}) => {
 
   useEventListeners(mqtt.client!);
 
-  const publish = (topic: string, payload: any) => {
-    const paylaod = {
-      topic: topic,
-      payload: payload,
-    };
-    mqtt.client?.publish(paylaod).then(ack => {
-      console.log(`publish topic with ack ${ack}`);
-    });
-  };
-
   const constructPayloadString = (interval: Interval): string => {
     const frequencies = interval?.frequencies
       ? JSON.parse(interval.frequencies)
@@ -103,20 +100,37 @@ const BioImpedanceScreen: FC<BioImpedanceScreenProps> = observer(({route}) => {
     return `${sensorType}:${config}:${frequency}:${datapoints}`;
   };
 
-  const start = () => {
+  const start_bioImpedance = () => {
     if (interval) {
-      const payload = constructPayloadString(interval);
-      console.log(payload);
-      publish('global/command_devices', payload);
+      const data = constructPayloadString(interval);
+      const paylaod = {
+        topic: 'esp/bio/data',
+        payload: data,
+      };
+      mqtt.client?.publish(paylaod).then(ack => {
+        console.log(`publish topic with ack ${ack}`);
+        setIsCollecting(true);
+      });
     } else {
       console.log('interval is undefined');
     }
   };
 
+  const stop_bioImpedance = () => {
+    const paylaod = {
+      topic: 'esp/bio/command',
+      payload: 'stop',
+    };
+    mqtt.client?.publish(paylaod).then(ack => {
+      console.log(`publish topic with ack ${ack}`);
+      setIsCollecting(false);
+    });
+  };
+
   const subscribeToBIO = async () => {
     if (mqtt.client) {
       mqtt.client.subscribe({
-        topic: 'nin/bioimpedance',
+        topic: 'mobile/bio/data',
         qos: MqttQos.EXACTLY_ONCE,
         onSuccess: ack => {
           setIsSubscribe(true);
@@ -135,7 +149,7 @@ const BioImpedanceScreen: FC<BioImpedanceScreenProps> = observer(({route}) => {
           const visit_id = interval?.visit.id;
           const data: BioSensorData[] = values?.map((value: BioData) => {
             return {
-              time: value.time,
+              time: Date.now(),
               visit_id: visit_id,
               interval_tag: interval_tag,
               config: config,
@@ -148,6 +162,40 @@ const BioImpedanceScreen: FC<BioImpedanceScreenProps> = observer(({route}) => {
           setnumPoints(values);
         },
       });
+
+      mqtt.client.subscribe({
+        topic: 'mobile/bio/command',
+        qos: MqttQos.EXACTLY_ONCE,
+        onSuccess: ack => {
+          setIsSubscribe(true);
+        },
+        onError: error => {
+          setIsSubscribe(false);
+        },
+        onEvent: ({payload}) => {
+          if (payload === 'completed') {
+            setCompleted(true);
+          }
+        },
+      });
+    }
+  };
+
+  const generator_csv = async () => {
+    try {
+      setIsGeneratingCsv(true);
+      const configies: any = interval?.configuration
+        ? JSON.parse(interval.configuration)
+        : null;
+
+      await create_csv_andSave(
+        configies.configuration,
+        interval?.visit.id,
+        interval?.interval_tag ?? 0,
+        dbService,
+      );
+    } finally {
+      setIsGeneratingCsv(false);
     }
   };
 
@@ -194,11 +242,24 @@ const BioImpedanceScreen: FC<BioImpedanceScreenProps> = observer(({route}) => {
       <Divider />
       {/* Glucose Load Chip */}
       <View style={styles.chipContainer}>
-        <Chip icon="pulse" mode="outlined" style={styles.chip}>
-          Glucose Load
-        </Chip>
         <Chip icon="clock-time-eight" mode="outlined" style={styles.chip}>
           {interval ? `${interval.interval_tag}-interval` : 'No tag'}
+        </Chip>
+        <Chip
+          icon={
+            completed
+              ? 'check-circle'
+              : isCollecting
+              ? 'progress-clock'
+              : 'information'
+          }
+          mode="outlined"
+          style={styles.chip}>
+          {completed
+            ? 'Completed'
+            : isCollecting
+            ? 'Collecting'
+            : 'Not Started'}
         </Chip>
       </View>
 
@@ -226,7 +287,7 @@ const BioImpedanceScreen: FC<BioImpedanceScreenProps> = observer(({route}) => {
       {/* Control Buttons */}
       <View style={[styles.buttonContainer]}>
         <Button
-          onPress={() => start()}
+          onPress={() => start_bioImpedance()}
           mode="contained"
           icon="play"
           style={styles.button}
@@ -234,6 +295,7 @@ const BioImpedanceScreen: FC<BioImpedanceScreenProps> = observer(({route}) => {
           Start
         </Button>
         <Button
+          onPress={() => stop_bioImpedance()}
           mode="contained"
           icon="stop"
           style={styles.button}
@@ -244,11 +306,14 @@ const BioImpedanceScreen: FC<BioImpedanceScreenProps> = observer(({route}) => {
           Discard
         </Button>
         <Button
+          onPress={() => generator_csv()}
           mode="contained"
           icon="check"
           style={styles.button}
-          buttonColor="#2196F3">
-          Done
+          buttonColor="#2196F3"
+          loading={isGeneratingCsv}
+          disabled={isGeneratingCsv}>
+          {isGeneratingCsv ? 'Generating...' : 'Generate CSV'}
         </Button>
       </View>
     </SafeAreaView>
@@ -264,7 +329,7 @@ const styles = StyleSheet.create({
     padding: 16,
     alignItems: 'center',
     flexDirection: 'row',
-    gap: 16,
+    gap: 8,
   },
   chip: {
     backgroundColor: '#fff',

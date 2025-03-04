@@ -3,12 +3,10 @@ import {DatabaseService, OP_DB_TABLE} from './databaseService';
 export interface BioData {
   bioImpedance: number;
   phaseAngle: number;
-  time: number;
 }
 
 export interface EcgData {
   ecg: number;
-  time: number;
 }
 
 // Bio sensor specific interface
@@ -144,7 +142,7 @@ export class SensorRepository {
           interval_tag,
           config,
           frequency,
-          bioImpedace,
+          bioImpedance,
           phaseAngle
         ) 
         VALUES (?, ?, ?, ?, ?, ?, ?)

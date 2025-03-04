@@ -32,6 +32,7 @@ interface IntervalListScreenProps {
 }
 
 interface VisitHistoryCardProps {
+  visitId: string;
   intervals: Interval[];
   onPressAdd: () => void;
   onPressVisit: (interval: Interval) => void;
@@ -54,14 +55,25 @@ const AddIntervalModal: React.FC<AddIntervalModalProps> = ({
     return differenceInMinutes(now, timestamp).toString();
   };
 
-  const [numberofDataPoint, setnumberofDataPoint] = useState<string>('');
-  const [intervalType, setIntervalType] = useState('ECG-Other');
-  const [selectedConfig, setSelectedConfig] = useState<string[]>([]);
+  const [numberofDataPoint, setnumberofDataPoint] = useState<string>('45');
+  const [intervalType, setIntervalType] = useState('BioImpedance');
+  const [selectedConfig, setSelectedConfig] = useState<string[]>([
+    'UPPERBODY',
+    'LEFTBODY',
+    'RIGHTBODY',
+    'LOWERBODY',
+  ]);
   const [count, setCount] = useState(
     calculateMinuteDifference(visit.visitDate),
   );
   const [frequency, setFrequency] = useState('');
-  const [frequencies, setFrequencies] = useState<string[]>([]);
+  const [frequencies, setFrequencies] = useState<string[]>([
+    '1',
+    '5',
+    '50',
+    '250',
+    '500',
+  ]);
 
   const handleAddFrequency = () => {
     if (frequency && !frequencies.includes(frequency)) {
@@ -185,7 +197,7 @@ const AddIntervalModal: React.FC<AddIntervalModalProps> = ({
                       labelStyle: styles.segmentedButtonLabel,
                       style: styles.ConfigSegmentButton,
                       value: 'FULLBODY',
-                      label: 'Full Body',
+                      label: 'full Body',
                       showSelectedCheck: true,
                     },
                   ]}
@@ -247,6 +259,7 @@ const AddIntervalModal: React.FC<AddIntervalModalProps> = ({
 };
 
 const VisitHistoryCard: React.FC<VisitHistoryCardProps> = ({
+  visitId,
   intervals,
   onPressAdd,
   onPressVisit,
@@ -256,6 +269,7 @@ const VisitHistoryCard: React.FC<VisitHistoryCardProps> = ({
     <Card style={[styles.card, {flex: 1}]}>
       <Card.Title
         title="Visit History"
+        subtitle={`ID : ${visitId}`}
         left={props => <Avatar.Icon {...props} icon="calendar-clock" />}
         right={props => (
           <IconButton
@@ -321,9 +335,6 @@ const VisitHistoryCard: React.FC<VisitHistoryCardProps> = ({
           </View>
         )}
       />
-      <View style={{paddingHorizontal: 20, paddingVertical: 20}}>
-        <Button mode="contained">generate CSV</Button>
-      </View>
     </Card>
   );
 };
@@ -348,6 +359,7 @@ const IntervalListScreen: React.FC<IntervalListScreenProps> = ({
     <Surface style={[styles.container, {paddingBottom: insets.bottom}]}>
       <View style={{flex: 1}}>
         <VisitHistoryCard
+          visitId={visit.id}
           intervals={intervals}
           onPressAdd={() => setModalVisible(true)}
           onPressVisit={handleOnClickVisit}
