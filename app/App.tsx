@@ -34,8 +34,14 @@ const App: React.FC<AppProps> = (props: AppProps) => {
     // Slightly delaying splash screen hiding for better UX; can be customized or removed as needed,
     // Note: (vanilla Android) The splash-screen will not appear if you launch your app via the terminal or Android Studio. Kill the app and launch it normally by tapping on the launcher icon. https://stackoverflow.com/a/69831106
     // Note: (vanilla iOS) You might notice the splash-screen logo change size. This happens in debug/development mode. Try building the app for release.
-    setTimeout(hideSplashScreen, 500);
+    setTimeout(() => {
+      console.log('rehydrated');
+    }, 500);
   });
+
+  // if (!rehydrated) {
+  //   return null;
+  // }
 
   const requestStoragePermissions = async () => {
     try {
