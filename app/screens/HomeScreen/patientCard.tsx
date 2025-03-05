@@ -1,9 +1,9 @@
 import React from 'react';
 import {Card, Text, Chip, Divider, IconButton} from 'react-native-paper';
-import {View, StyleSheet} from 'react-native';
-import {format} from 'date-fns';
+import {View, StyleSheet, Alert} from 'react-native';
 import {Patient} from '../../watermelodb/models/patient';
 import {withObservables} from '@nozbe/watermelondb/react';
+import {database} from '../../watermelodb/database';
 interface Props {
   patient: Patient;
   onPatientPress?: (patient: Patient) => void;
@@ -12,6 +12,31 @@ interface Props {
 export const renderPatientCard = ({patient, onPatientPress}: Props) => {
   const age = patient.age;
   const bmi = (patient.weight / Math.pow(patient.height / 100, 2)).toFixed(1);
+
+  const onDeletePress = (patient: Patient) => {
+    database.write(async () => {
+      await patient.markAsDeleted();
+    });
+  };
+
+  const handleDelete = (patient: Patient) => {
+    Alert.alert(
+      'Delete Patient',
+      `Are you sure you want to delete ${patient.fullName}?`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          onPress: () => onDeletePress?.(patient),
+          style: 'destructive',
+        },
+      ],
+      {cancelable: true},
+    );
+  };
 
   return (
     <Card style={styles.card} onPress={() => onPatientPress?.(patient)}>
@@ -25,6 +50,12 @@ export const renderPatientCard = ({patient, onPatientPress}: Props) => {
               {patient.email}
             </Text>
           </View>
+          <IconButton
+            icon="delete"
+            size={24}
+            iconColor="grey"
+            onPress={() => handleDelete(patient)}
+          />
           <IconButton
             icon="chevron-right"
             size={24}

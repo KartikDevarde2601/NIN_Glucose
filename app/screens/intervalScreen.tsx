@@ -1,5 +1,5 @@
 import React, {useState} from 'react';
-import {View, StyleSheet, FlatList} from 'react-native';
+import {View, StyleSheet, FlatList, Alert} from 'react-native';
 import {
   Surface,
   Text,
@@ -264,6 +264,30 @@ const VisitHistoryCard: React.FC<VisitHistoryCardProps> = ({
   onPressAdd,
   onPressVisit,
 }) => {
+  const onDeletePress = (interval: Interval) => {
+    database.write(async () => {
+      await interval.markAsDeleted();
+    });
+  };
+
+  const handleDelete = (interval: Interval) => {
+    Alert.alert(
+      'Delete Patient',
+      `Are you sure you want to delete ${interval.id}?`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          onPress: () => onDeletePress?.(interval),
+          style: 'destructive',
+        },
+      ],
+      {cancelable: true},
+    );
+  };
   const theme = useTheme();
   return (
     <Card style={[styles.card, {flex: 1}]}>
@@ -300,6 +324,12 @@ const VisitHistoryCard: React.FC<VisitHistoryCardProps> = ({
                     <Avatar.Icon icon="timer-sand" size={25} />
                     <Text variant="titleMedium">{item.interval_tag} Tag</Text>
                   </View>
+                  <IconButton
+                    icon="delete"
+                    size={24}
+                    iconColor="grey"
+                    onPress={() => handleDelete(item)}
+                  />
                   <Chip style={styles.chip}>{item.intervalType}</Chip>
                 </View>
                 <Divider style={styles.miniDivider} />

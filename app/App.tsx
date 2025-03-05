@@ -13,11 +13,29 @@ import {useStores} from './models';
 import Toast from 'react-native-toast-message';
 import {NativeModules} from 'react-native';
 
-const {ManageStorage} = NativeModules;
+import {useInitialRootStore} from './models';
 
-const App: React.FC = () => {
+const {ManageStorage} = NativeModules;
+export const NAVIGATION_PERSISTENCE_KEY = 'NAVIGATION_STATE';
+
+interface AppProps {
+  hideSplashScreen: () => Promise<boolean>;
+}
+
+const App: React.FC<AppProps> = (props: AppProps) => {
+  const {hideSplashScreen} = props;
   const dbService = useMemo(() => DatabaseService.getInstance(), []);
   const {mqtt} = useStores();
+
+  const {rehydrated} = useInitialRootStore(() => {
+    // This runs after the root store has been initialized and rehydrated.
+
+    // If your initialization scripts run very fast, it's good to show the splash screen for just a bit longer to prevent flicker.
+    // Slightly delaying splash screen hiding for better UX; can be customized or removed as needed,
+    // Note: (vanilla Android) The splash-screen will not appear if you launch your app via the terminal or Android Studio. Kill the app and launch it normally by tapping on the launcher icon. https://stackoverflow.com/a/69831106
+    // Note: (vanilla iOS) You might notice the splash-screen logo change size. This happens in debug/development mode. Try building the app for release.
+    setTimeout(hideSplashScreen, 500);
+  });
 
   const requestStoragePermissions = async () => {
     try {
@@ -87,8 +105,8 @@ const App: React.FC = () => {
             barStyle="light-content"
             backgroundColor="rgb(120, 69, 172)"
           />
-          <Toast />
           <MainNavigator />
+          <Toast />
         </PaperProvider>
       </WatermelonDatabaseProvider>
     </GestureHandlerRootView>

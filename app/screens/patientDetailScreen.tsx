@@ -1,5 +1,5 @@
 import React, {FC, useState} from 'react';
-import {View, StyleSheet, FlatList} from 'react-native';
+import {View, StyleSheet, FlatList, Alert} from 'react-native';
 import {
   Card,
   Text,
@@ -268,6 +268,31 @@ const VisitHistoryCard: React.FC<VisitHistoryCardProps> = ({
   onPressAdd,
   onPressVisit,
 }) => {
+  const onDeletePress = (visit: Visit) => {
+    database.write(async () => {
+      await visit.markAsDeleted();
+    });
+  };
+
+  const handleDelete = (visit: Visit) => {
+    Alert.alert(
+      'Delete Patient',
+      `Are you sure you want to delete ${visit.id}?`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          onPress: () => onDeletePress?.(visit),
+          style: 'destructive',
+        },
+      ],
+      {cancelable: true},
+    );
+  };
+
   return (
     <Card style={styles.card}>
       <Card.Title
@@ -299,6 +324,12 @@ const VisitHistoryCard: React.FC<VisitHistoryCardProps> = ({
                       {format(new Date(item.visitDate), 'MMM d, yyyy')}
                     </Text>
                   </View>
+                  <IconButton
+                    icon="delete"
+                    size={24}
+                    iconColor="grey"
+                    onPress={() => handleDelete(item)}
+                  />
                   <Chip style={styles.chip}>{item.visitType}</Chip>
                 </View>
                 <Divider style={styles.miniDivider} />

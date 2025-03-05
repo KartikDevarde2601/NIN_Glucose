@@ -24,6 +24,7 @@ import {RootStackParamList} from '../../navigation/appNavigation';
 import {RouteProp} from '@react-navigation/native';
 import {Interval} from '../../watermelodb/models/interval';
 import {database} from '../../watermelodb/database';
+import Toast from 'react-native-toast-message';
 import {
   SensorRepository,
   BioSensorData,
@@ -33,6 +34,7 @@ import SimpleGraph from './graphBIO';
 import {DataPoint} from './graphBIO';
 import {create_csv_andSave} from '../../utils/csvgenerator';
 import {DatabaseService, OP_DB_TABLE} from '../../op-sqllite/databaseService';
+import {useNavigation} from '@react-navigation/native';
 
 enum MqttQos {
   AT_MOST_ONCE = 0,
@@ -49,9 +51,10 @@ interface BioImpedanceScreenProps extends RootStackParamList {
 const sensor = new SensorRepository();
 
 const BioImpedanceScreen: FC<BioImpedanceScreenProps> = observer(({route}) => {
+  const navigation = useNavigation();
   const theme = useTheme();
   const _goBack = () => {
-    console.log('back');
+    navigation.goBack();
   };
   const {mqtt} = useStores();
   const [interval, setInterval] = useState<Interval | undefined>(undefined);
@@ -199,6 +202,50 @@ const BioImpedanceScreen: FC<BioImpedanceScreenProps> = observer(({route}) => {
     }
   };
 
+  const _onDiscard = async (visitId: string, interval_tag: number) => {
+    console.log('deleting');
+    try {
+      // Delete records from the bioSensor table
+      const deleteQuery = `DELETE FROM ${OP_DB_TABLE.bioSensor} 
+                          WHERE visit_id = ? AND interval_tag = ?`;
+
+      await dbService.execute(deleteQuery, [visitId, interval_tag]);
+
+      // Clear the graph points
+      setnumPoints([]);
+
+      // Show success toast
+      Toast.show({
+        type: 'success',
+        text1: 'Success',
+        text2: 'Data has been successfully discarded',
+        position: 'top',
+        visibilityTime: 2000,
+        autoHide: true,
+        topOffset: 30,
+      });
+
+      console.log('deleted');
+
+      // Reset states
+      setCompleted(false);
+      setIsCollecting(false);
+    } catch (error) {
+      console.error('Error discarding data:', error);
+
+      // Show error toast
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Failed to discard data',
+        position: 'top',
+        visibilityTime: 2000,
+        autoHide: true,
+        topOffset: 30,
+      });
+    }
+  };
+
   return (
     <SafeAreaView style={{flex: 1, backgroundColor: theme.colors.background}}>
       {/* Header */}
@@ -302,7 +349,13 @@ const BioImpedanceScreen: FC<BioImpedanceScreenProps> = observer(({route}) => {
           buttonColor="#F44336">
           Stop
         </Button>
-        <Button mode="outlined" icon="delete" style={styles.button}>
+        <Button
+          mode="outlined"
+          onPress={() =>
+            _onDiscard(interval?.visit.id, interval?.interval_tag!!)
+          }
+          icon="delete"
+          style={styles.button}>
           Discard
         </Button>
         <Button

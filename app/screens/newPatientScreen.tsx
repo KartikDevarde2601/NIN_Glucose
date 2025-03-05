@@ -64,6 +64,7 @@ const NewPatientScreen = () => {
     handleSubmit,
     formState: {errors},
     setValue,
+    reset,
   } = useForm({
     defaultValues: {
       fullName: '',
@@ -96,6 +97,8 @@ const NewPatientScreen = () => {
     navigation.navigate('addClinicalData', {
       patientForm: data,
     });
+    reset();
+    setDate(null);
   };
 
   return (
@@ -185,6 +188,7 @@ const NewPatientScreen = () => {
               onChangeText={onChange}
               error={!!errors.contactInformation}
               style={styles.input}
+              keyboardType="numeric"
             />
           )}
         />
@@ -238,7 +242,7 @@ const NewPatientScreen = () => {
           rules={{
             required: 'Height is required',
             pattern: {
-              value: /^\d+$/,
+              value: /^\d*\.?\d+$/,
               message: 'Please enter a valid height',
             },
           }}
@@ -261,7 +265,7 @@ const NewPatientScreen = () => {
           rules={{
             required: 'Weight is required',
             pattern: {
-              value: /^\d+$/,
+              value: /^\d*\.?\d+$/,
               message: 'Please enter a valid weight',
             },
           }}

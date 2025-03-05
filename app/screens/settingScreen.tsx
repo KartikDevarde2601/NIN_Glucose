@@ -5,6 +5,7 @@ import {Button, TextInput, Switch, Text, Surface} from 'react-native-paper';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useStores} from '../models';
 import {MqttConfig} from '@kartik2601/rn-mqtt-android';
+import Toast from 'react-native-toast-message';
 
 export const SettingScreen = () => {
   const {mqtt} = useStores();
@@ -26,6 +27,15 @@ export const SettingScreen = () => {
     option: any;
   }) => {
     mqtt.editConfig({...data, port: Number(data.port)});
+    Toast.show({
+      type: 'success',
+      text1: 'Success',
+      text2: 'Mqtt configure successfully',
+      position: 'top',
+      visibilityTime: 2000,
+      autoHide: true,
+      topOffset: 30,
+    });
   };
 
   return (
