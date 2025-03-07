@@ -6,23 +6,21 @@ import {useNavigation, NavigationProp} from '@react-navigation/native';
 import {RootStackParamList} from '../../navigation/appNavigation';
 import {Searchbar} from 'react-native-paper';
 import {database} from '../../watermelodb/database';
+import {useStores} from '../../models';
 import {DatabaseService, OP_DB_TABLE} from '../../op-sqllite/databaseService';
+import {observer} from 'mobx-react-lite';
 
-const HomeScreen: React.FC = () => {
+const HomeScreen: React.FC = observer(() => {
   const [searchQuery, setSearchQuery] = useState('');
   const dbService = useMemo(() => DatabaseService.getInstance(), []);
+  const {mqtt} = useStores();
 
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+  console.log(mqtt);
 
   useEffect(() => {
-    const fetchData = async () => {
-      const results = await dbService.execute(
-        `SELECT * FROM ${OP_DB_TABLE.bioSensor}`,
-      );
-      console.log(results);
-    };
-    fetchData();
-  }, []);
+    mqtt.initializeClient();
+  }, [mqtt]);
 
   return (
     <View style={styles.container}>
@@ -41,7 +39,7 @@ const HomeScreen: React.FC = () => {
       />
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {

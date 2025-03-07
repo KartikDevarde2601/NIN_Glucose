@@ -37,7 +37,6 @@ export const MqttStore = types
   .props({
     clientId: types.optional(types.string, ''),
     host: types.optional(types.string, ''),
-    isconnected: types.optional(types.boolean, false),
     port: types.optional(types.number, 1883),
     options: types.optional(MqttOptionsModel, {}),
     currentSessionName: types.optional(types.string, ''),
@@ -48,10 +47,12 @@ export const MqttStore = types
   })
   .volatile(self => ({
     client: null as MqttClient | null,
+    isconnected: false,
   }))
   .views(self => ({}))
   .actions(self => {
     const initializeClient = flow(function* () {
+      console.log('intilizeClient');
       if (self.client) {
         return self.client;
       }
@@ -114,6 +115,7 @@ export const MqttStore = types
 
       try {
         self.client.disconnect();
+        console.log('mqtt disconnected');
       } catch (error) {
         self.status = ConnectionStatus.ERROR;
         console.error('Error during MQTT disconnection:', error);
@@ -179,12 +181,8 @@ export const MqttStore = types
     get isConnected() {
       return self.status === ConnectionStatus.CONNECTED;
     },
-  }))
-  .actions(self => ({
-    afterCreate() {
-      self.initializeClient();
-    },
   }));
+
 export interface Mqtt extends Instance<typeof MqttStore> {}
 export interface MqttSnapshotOut extends SnapshotOut<typeof MqttStore> {}
 export interface MqttSnapshotIn extends SnapshotIn<typeof MqttStore> {}

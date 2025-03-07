@@ -1,7 +1,7 @@
 import 'react-native-gesture-handler';
 import * as React from 'react';
 import {useEffect, useMemo} from 'react';
-import {PaperProvider} from 'react-native-paper';
+import {MD2Colors, PaperProvider} from 'react-native-paper';
 import {StatusBar, Platform, PermissionsAndroid, Alert} from 'react-native';
 import MainNavigator from './navigation/appNavigation';
 import {Theme} from './theme/theme';
@@ -12,18 +12,13 @@ import {DatabaseService} from './op-sqllite/databaseService';
 import {useStores} from './models';
 import Toast from 'react-native-toast-message';
 import {NativeModules} from 'react-native';
-
+import {AppState} from 'react-native';
+import SplashScreen from 'react-native-splash-screen';
 import {useInitialRootStore} from './models';
-
 const {ManageStorage} = NativeModules;
 export const NAVIGATION_PERSISTENCE_KEY = 'NAVIGATION_STATE';
 
-interface AppProps {
-  hideSplashScreen: () => Promise<boolean>;
-}
-
-const App: React.FC<AppProps> = (props: AppProps) => {
-  const {hideSplashScreen} = props;
+const App: React.FC = () => {
   const dbService = useMemo(() => DatabaseService.getInstance(), []);
   const {mqtt} = useStores();
 
@@ -34,14 +29,8 @@ const App: React.FC<AppProps> = (props: AppProps) => {
     // Slightly delaying splash screen hiding for better UX; can be customized or removed as needed,
     // Note: (vanilla Android) The splash-screen will not appear if you launch your app via the terminal or Android Studio. Kill the app and launch it normally by tapping on the launcher icon. https://stackoverflow.com/a/69831106
     // Note: (vanilla iOS) You might notice the splash-screen logo change size. This happens in debug/development mode. Try building the app for release.
-    setTimeout(() => {
-      console.log('rehydrated');
-    }, 500);
+    setTimeout(() => SplashScreen.hide(), 500);
   });
-
-  // if (!rehydrated) {
-  //   return null;
-  // }
 
   const requestStoragePermissions = async () => {
     try {
@@ -85,7 +74,22 @@ const App: React.FC<AppProps> = (props: AppProps) => {
 
   useEffect(() => {
     requestStoragePermissions();
-  });
+  }, []);
+
+  useEffect(() => {
+    const handleAppStateChange = (state: string) => {
+      if (state === 'inactive') {
+        console.log('App is closing, disconnect MQTT');
+        mqtt.disconnect();
+      }
+    };
+
+    const subscription = AppState.addEventListener(
+      'change',
+      handleAppStateChange,
+    );
+    return () => subscription.remove();
+  }, []);
 
   useEffect(() => {
     try {
