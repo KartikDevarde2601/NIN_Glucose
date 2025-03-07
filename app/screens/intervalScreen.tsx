@@ -55,7 +55,7 @@ const AddIntervalModal: React.FC<AddIntervalModalProps> = ({
     return differenceInMinutes(now, timestamp).toString();
   };
 
-  const [numberofDataPoint, setnumberofDataPoint] = useState<string>('45');
+  const [numberofDataPoint, setnumberofDataPoint] = useState<string>('60');
   const [intervalType, setIntervalType] = useState('BioImpedance');
   const [selectedConfig, setSelectedConfig] = useState<string[]>([
     'UPPERBODY',
@@ -71,8 +71,7 @@ const AddIntervalModal: React.FC<AddIntervalModalProps> = ({
     '1',
     '5',
     '50',
-    '250',
-    '500',
+    '200',
   ]);
 
   const handleAddFrequency = () => {
@@ -102,7 +101,7 @@ const AddIntervalModal: React.FC<AddIntervalModalProps> = ({
           interval.visit.set(visit);
           interval.interval_tag = Number(count);
           interval.intervalType = intervalType;
-          interval.dataPoints = Number(numberofDataPoint);
+          interval.dataPoints = numberofDataPoint;
           interval.frequencies = JSON.stringify(frequencyData);
           interval.configuration = JSON.stringify(configurationData);
         });

@@ -15,7 +15,7 @@ export class Interval extends Model {
   @field('interval_tag') interval_tag!: number;
   @field('configuration') configuration!: string;
   @field('frequencies') frequencies!: string;
-  @field('dataPoints') dataPoints!: number;
+  @field('dataPoints') dataPoints!: string;
 
   @relation(TableName.VISITS, 'visit_id') visit!: Relation<Visit>;
 

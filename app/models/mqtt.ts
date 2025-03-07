@@ -35,8 +35,8 @@ export enum MqttQos {
 export const MqttStore = types
   .model('MqttStore')
   .props({
-    clientId: types.string,
-    host: types.string,
+    clientId: types.optional(types.string, ''),
+    host: types.optional(types.string, ''),
     isconnected: types.optional(types.boolean, false),
     port: types.optional(types.number, 1883),
     options: types.optional(MqttOptionsModel, {}),
@@ -139,16 +139,23 @@ export const MqttStore = types
       self.status = ConnectionStatus.IDLE;
     };
 
-    const editConfig = (data: Partial<MqttConfig>) => {
+    const editConfig = flow(function* (data: Partial<MqttConfig>) {
       Object.keys(data).forEach(key => {
         (self as any)[key] = data[key as keyof MqttConfig];
       });
 
       cleanup();
       console.log('MQTT client Cleanup');
-      initializeClient();
+
+      // Wait for client initialization to complete
+      yield initializeClient();
       console.log('MQTT client Reinitialized');
-    };
+
+      // Only try to connect if client was successfully initialized
+      if (self.client) {
+        console.log('client create succefully');
+      }
+    });
 
     const updateStatus = (status: ConnectionStatus) => {
       self.status = status;

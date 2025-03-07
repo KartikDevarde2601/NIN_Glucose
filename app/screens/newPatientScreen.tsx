@@ -71,12 +71,28 @@ const NewPatientScreen = () => {
       email: '',
       dateOfBirth: '',
       contactInformation: '',
-      age: '',
       gender: '',
       height: '',
       weight: '',
+      age: '',
     },
   });
+
+  // Add calculateAge function after the interface
+  const calculateAge = (birthDate: string): number => {
+    const today = new Date();
+    const birth = new Date(birthDate);
+    let age = today.getFullYear() - birth.getFullYear();
+    const monthDiff = today.getMonth() - birth.getMonth();
+
+    if (
+      monthDiff < 0 ||
+      (monthDiff === 0 && today.getDate() < birth.getDate())
+    ) {
+      age--;
+    }
+    return age;
+  };
 
   const onDismiss = useCallback(() => {
     setVisible(false);
@@ -88,6 +104,8 @@ const NewPatientScreen = () => {
       setDate(date);
       const formattedDate = date.toISOString().split('T')[0];
       setValue('dateOfBirth', formattedDate);
+      const calculatedAge = calculateAge(formattedDate).toString();
+      setValue('age', calculatedAge);
     },
     [setVisible, setValue],
   );

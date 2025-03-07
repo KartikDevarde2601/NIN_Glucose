@@ -19,7 +19,6 @@ import {
 import {useTheme} from 'react-native-paper';
 import {useStores} from '../../models';
 import {observer} from 'mobx-react-lite';
-import {useEventListeners} from '../../hook/useEventListernMqtt';
 import {RootStackParamList} from '../../navigation/appNavigation';
 import {RouteProp} from '@react-navigation/native';
 import {Interval} from '../../watermelodb/models/interval';
@@ -35,6 +34,7 @@ import {DataPoint} from './graphBIO';
 import {create_csv_andSave} from '../../utils/csvgenerator';
 import {DatabaseService, OP_DB_TABLE} from '../../op-sqllite/databaseService';
 import {useNavigation} from '@react-navigation/native';
+import {useEventListeners} from '../../hook/useEventListernMqtt';
 
 enum MqttQos {
   AT_MOST_ONCE = 0,
@@ -65,6 +65,7 @@ const BioImpedanceScreen: FC<BioImpedanceScreenProps> = observer(({route}) => {
   const [isGeneratingCsv, setIsGeneratingCsv] = useState<boolean>(false);
 
   const dbService = useMemo(() => DatabaseService.getInstance(), []);
+  console.log(interval?.dataPoints);
 
   // Get visit_id from route params
   const interval_id = route.params.interval_id;
@@ -84,8 +85,6 @@ const BioImpedanceScreen: FC<BioImpedanceScreenProps> = observer(({route}) => {
     fetchInterval();
   }, [interval_id]);
 
-  useEventListeners(mqtt.client!);
-
   const constructPayloadString = (interval: Interval): string => {
     const frequencies = interval?.frequencies
       ? JSON.parse(interval.frequencies)
@@ -98,7 +97,7 @@ const BioImpedanceScreen: FC<BioImpedanceScreenProps> = observer(({route}) => {
     const sensorType = 'bioImpedance';
     const config = configies?.configuration?.join(',') || ''; // Convert array to comma-separated string
     const frequency = frequencies?.frequencies?.join(',') || ''; // Convert array to comma-separated string
-    const datapoints = interval?.dataPoints || '100';
+    const datapoints = interval?.dataPoints || '60';
 
     return `${sensorType}:${config}:${frequency}:${datapoints}`;
   };
@@ -245,6 +244,8 @@ const BioImpedanceScreen: FC<BioImpedanceScreenProps> = observer(({route}) => {
       });
     }
   };
+
+  useEventListeners(mqtt.client!);
 
   return (
     <SafeAreaView style={{flex: 1, backgroundColor: theme.colors.background}}>
