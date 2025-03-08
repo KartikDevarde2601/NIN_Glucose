@@ -16,11 +16,14 @@ const HomeScreen: React.FC = observer(() => {
   const {mqtt} = useStores();
 
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
-  console.log(mqtt);
 
   useEffect(() => {
-    mqtt.initializeClient();
-  }, [mqtt]);
+    const initMqtt = async () => {
+      await mqtt.initializeClient();
+    };
+
+    initMqtt();
+  }, [mqtt.clientId]);
 
   return (
     <View style={styles.container}>

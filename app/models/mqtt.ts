@@ -52,7 +52,6 @@ export const MqttStore = types
   .views(self => ({}))
   .actions(self => {
     const initializeClient = flow(function* () {
-      console.log('intilizeClient');
       if (self.client) {
         return self.client;
       }
@@ -81,8 +80,7 @@ export const MqttStore = types
 
         self.client = yield createMqttClient(config);
 
-        // Update status
-        self.status = ConnectionStatus.DISCONNECTED;
+        console.log('mqtt client', self.client);
 
         return self.client;
       } catch (error) {

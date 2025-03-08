@@ -57,7 +57,6 @@ const BioImpedanceScreen: FC<BioImpedanceScreenProps> = observer(({route}) => {
     navigation.goBack();
   };
   const {mqtt} = useStores();
-  console.log(mqtt);
   const [interval, setInterval] = useState<Interval | undefined>(undefined);
   const [numPoints, setnumPoints] = useState<DataPoint[]>([]); // Initialize with empty array
   const [isSubscribe, setIsSubscribe] = useState<boolean>(false);

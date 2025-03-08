@@ -8,7 +8,7 @@ export const MqttOptionsModel = types
   .props({
     password: types.optional(types.string, ''),
     enableSslConfig: types.optional(types.boolean, false),
-    autoReconnect: types.optional(types.boolean, true),
+    autoReconnect: types.optional(types.boolean, false),
     maxBackoffTime: types.optional(types.number, 60),
     retryCount: types.optional(types.number, 3),
     cleanSession: types.optional(types.boolean, true),
