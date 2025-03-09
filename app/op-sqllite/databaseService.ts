@@ -82,6 +82,20 @@ export class DatabaseService {
     return (await this.database.execute(query, params)) as {rows: T[]};
   }
 
+  async transactional<T>(query: string, params: any[] = []): Promise<void> {
+    if (!this.database) {
+      throw new Error('Database not initialized');
+    }
+
+    try {
+      await this.database.transaction(async tx => {
+        await tx.execute(query, params);
+      });
+    } catch (error) {
+      console.error('Error executing transaction:', error);
+      throw error;
+    }
+  }
   /**
    * Execute a batch of SQL statements in a transaction
    * @param commands Array of [query, params] tuples

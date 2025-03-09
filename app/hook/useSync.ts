@@ -37,7 +37,7 @@ const useSync = (): UseSyncReturn => {
       sendCreatedAsUpdated: true,
       database,
       pullChanges: async ({lastPulledAt}) => {
-        const response = await api.pull(lastPulledAt, false);
+        const response = await api.pull(lastPulledAt);
 
         if (response.kind !== 'ok') {
           setSyncStatus('Error in pulling data');
@@ -45,13 +45,14 @@ const useSync = (): UseSyncReturn => {
         }
 
         const {changes, timestamp} = response.data;
+        console.log('changes', changes);
+        console.log('timestamp', timestamp);
         return {
           changes: changes as unknown as SyncDatabaseChangeSet,
           timestamp,
         };
       },
       pushChanges: async ({changes, lastPulledAt}): Promise<void> => {
-        console.log('local changes', changes.sensorvalues.created[0]);
         const response = await api.push(
           lastPulledAt,
           changes as SyncDatabaseChangeSet,

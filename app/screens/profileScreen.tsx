@@ -29,7 +29,9 @@ const ProfileScreen = () => {
     // Implement logout logic
   };
 
-  const handlePatientDataSync = async () => {};
+  const handlePatientDataSync = async () => {
+    syncData();
+  };
 
   const handleSensorDataSync = async () => {};
 

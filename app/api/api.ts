@@ -19,7 +19,7 @@ import {SyncDatabaseChangeSet} from '@nozbe/watermelondb/sync';
  * Configuring the apisauce instance.
  */
 
-const API_URL = 'http://10.2.216.208/api/';
+const API_URL = 'http://10.2.137.217:8082/';
 export const DEFAULT_API_CONFIG: ApiConfig = {
   url: API_URL,
   timeout: 30000,
@@ -92,22 +92,11 @@ export class Api {
 
   async pull(
     last_pulled_at: number | undefined,
-    // token: string,
-    isLoginSync: boolean,
   ): Promise<{kind: 'ok'; data: pullResponse} | GeneralApiProblem> {
     try {
-      const response = await this.apisauce.get<pullResponse>(
-        'sync/push',
-        {
-          last_pulled_at: last_pulled_at?.toString(),
-          isLoginSync: isLoginSync ? 'true' : 'false',
-        },
-        {
-          // headers: {
-          //   Authorization: `Bearer ${token}`,
-          // },
-        },
-      );
+      const response = await this.apisauce.get<pullResponse>('api/push', {
+        last_pulled_at: last_pulled_at?.toString(),
+      });
 
       if (response.ok && response.data) {
         return {kind: 'ok', data: response.data};
@@ -126,7 +115,7 @@ export class Api {
   ): Promise<{kind: 'ok'; data: {msg: string}} | GeneralApiProblem> {
     try {
       const response = await this.apisauce.post<pushResponse>(
-        'sync/pull',
+        'api/pull',
         {changes, lastPulledAt},
         {
           // headers: {
@@ -135,6 +124,8 @@ export class Api {
           // },
         },
       );
+
+      console.log('push', response.data);
 
       if (response.ok && response.data) {
         return {kind: 'ok', data: response.data};
