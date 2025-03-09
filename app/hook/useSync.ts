@@ -3,27 +3,23 @@ import {synchronize, SyncDatabaseChangeSet} from '@nozbe/watermelondb/sync';
 import {database} from '../watermelodb/database';
 import {api} from '../api';
 import {getLastPulledAt} from '@nozbe/watermelondb/sync/impl';
+import {useStores} from '../models';
+import {SyncStatus_Enum} from '../models/syncIndicator';
 
 interface UseSyncReturn {
   isSyncing: boolean;
-  syncStatus: string | null;
-  lastSyncTimestamp: string | null;
-  setLastSyncTimestamp: (timestamp: string) => void;
   syncData: () => Promise<void>;
 }
 
 const useSync = (): UseSyncReturn => {
+  const {sync} = useStores();
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
-  const [syncStatus, setSyncStatus] = useState<string | null>('No Sync Status');
-  const [lastSyncTimestamp, setLastSyncTimestamp] = useState<string | null>(
-    null,
-  );
   //   const { authToken } = useAuth()
 
   // Function to handle syncing
   const syncData = useCallback(async (): Promise<void> => {
     setIsSyncing(true);
-    setSyncStatus('Data is Syncing 🔄');
+    sync.setPdStatus(SyncStatus_Enum.Syncing);
 
     let syncSuccess = false;
 
@@ -40,7 +36,7 @@ const useSync = (): UseSyncReturn => {
         const response = await api.pull(lastPulledAt);
 
         if (response.kind !== 'ok') {
-          setSyncStatus('Error in pulling data');
+          sync.setPdStatus(SyncStatus_Enum.Error);
           return Promise.reject(response.kind);
         }
 
@@ -59,43 +55,39 @@ const useSync = (): UseSyncReturn => {
         );
 
         if (response.kind !== 'ok') {
-          setSyncStatus('Error in pushing data');
+          sync.setPdStatus(SyncStatus_Enum.Error);
           return Promise.reject(response.kind);
         }
       },
     })
       .then(async () => {
         syncSuccess = true;
-
-        setLastSyncTimestamp(new Date().toISOString());
+        sync.setPdStatus(SyncStatus_Enum.Done);
         await getLastPulledAt(database).then(lastPulledAt => {
           if (lastPulledAt) {
-            setLastSyncTimestamp(new Date(lastPulledAt * 1000).toISOString());
+            sync.setPdTimestamp(new Date(lastPulledAt * 1000));
           }
         });
 
-        setSyncStatus('Data is Synced ✅');
+        sync.setPdStatus(SyncStatus_Enum.Done);
       })
       .catch(error => {
         // Sync failed
         console.error('Sync error:', error);
-        setSyncStatus('Sync Failed ❌');
+        sync.setPdStatus(SyncStatus_Enum.Error);
       })
       .finally(() => {
         setIsSyncing(false);
       });
 
     if (!syncSuccess) {
-      setSyncStatus('Sync Failed ❌');
+      sync.setPdStatus(SyncStatus_Enum.Error);
     }
   }, []);
 
   return {
     isSyncing,
-    syncStatus,
-    lastSyncTimestamp,
     syncData,
-    setLastSyncTimestamp,
   };
 };
 

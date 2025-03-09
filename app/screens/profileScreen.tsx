@@ -13,16 +13,13 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {format} from 'date-fns';
 import {useSync} from '../hook/useSync';
 import {useTheme} from 'react-native-paper';
+import {Observer} from 'mobx-react-lite';
+import {useStores} from '../models';
 
 const ProfileScreen = () => {
+  const {isSyncing, syncData} = useSync();
   const [syncType, setSyncType] = useState<'Patient' | 'Sensor' | null>(null);
-  const {
-    isSyncing,
-    syncData,
-    lastSyncTimestamp,
-    syncStatus,
-    setLastSyncTimestamp,
-  } = useSync();
+  const {sync} = useStores();
   const theme = useTheme();
 
   const handleLogout = () => {
@@ -30,10 +27,13 @@ const ProfileScreen = () => {
   };
 
   const handlePatientDataSync = async () => {
+    setSyncType('Patient');
     syncData();
   };
 
-  const handleSensorDataSync = async () => {};
+  const handleSensorDataSync = async () => {
+    setSyncType('Sensor');
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -94,39 +94,60 @@ const ProfileScreen = () => {
 
         <Surface style={styles.syncSection}>
           <View style={styles.syncHeader}>
-            <View style={{flexDirection: 'row', gap: 10}}>
-              <Icon
-                source="clock-time-eight"
-                size={20}
-                color={theme.colors.primary}
-              />
-              <Text
-                variant="bodyMedium"
-                style={[
-                  styles.lastSyncText,
-                  {color: theme.colors.onSurfaceVariant},
-                ]}>
-                Last synced:{' '}
-                {lastSyncTimestamp
-                  ? format(new Date(lastSyncTimestamp), 'MMM dd, HH:mm')
-                  : 'Never'}
-              </Text>
-            </View>
+            <View style={styles.syncGroup}>
+              <View style={styles.syncIndicator}>
+                <Icon
+                  source="database-sync"
+                  size={20}
+                  color={theme.colors.primary}
+                />
+                <View>
+                  <Text
+                    variant="bodySmall"
+                    style={{color: theme.colors.onSurfaceVariant}}>
+                    {sync.pdstatus}
+                  </Text>
+                  <Text
+                    variant="bodyMedium"
+                    style={[
+                      styles.lastSyncText,
+                      {color: theme.colors.onSurfaceVariant},
+                    ]}>
+                    {sync.pdtimestamp
+                      ? format(new Date(sync.pdtimestamp), 'MMM dd, HH:mm')
+                      : 'Never synced'}
+                  </Text>
+                </View>
+              </View>
 
-            <View style={{flexDirection: 'row', gap: 10}}>
-              <Icon
-                source="sync-circle"
-                size={20}
-                color={theme.colors.primary}
-              />
-              <Text
-                variant="bodyMedium"
+              <View
                 style={[
-                  styles.lastSyncText,
-                  {color: theme.colors.onSurfaceVariant},
+                  styles.syncIndicator,
+                  {backgroundColor: theme.colors.surfaceVariant},
                 ]}>
-                {syncStatus}
-              </Text>
+                <Icon
+                  source="connection"
+                  size={20}
+                  color={theme.colors.primary}
+                />
+                <View>
+                  <Text
+                    variant="bodySmall"
+                    style={{color: theme.colors.onSurfaceVariant}}>
+                    {sync.sdstatus}
+                  </Text>
+                  <Text
+                    variant="bodyMedium"
+                    style={[
+                      styles.lastSyncText,
+                      {color: theme.colors.onSurfaceVariant},
+                    ]}>
+                    {sync.sdtimestamp
+                      ? format(new Date(sync.sdtimestamp), 'MMM dd, HH:mm')
+                      : 'Never synced'}
+                  </Text>
+                </View>
+              </View>
             </View>
 
             {isSyncing && (
@@ -284,6 +305,16 @@ const styles = StyleSheet.create({
   },
   sensorButton: {
     backgroundColor: '#3700b3',
+  },
+  syncGroup: {
+    gap: 16,
+  },
+  syncIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 12,
+    borderRadius: 12,
   },
 });
 

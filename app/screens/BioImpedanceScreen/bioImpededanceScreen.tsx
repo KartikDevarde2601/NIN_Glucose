@@ -142,26 +142,27 @@ const BioImpedanceScreen: FC<BioImpedanceScreenProps> = observer(({route}) => {
         },
         onEvent: ({payload}) => {
           const dataObject = JSON.parse(payload);
-          console.log(dataObject);
-          const config = dataObject.config;
-          const frequency = dataObject.freq;
-          const interval_tag = interval?.interval_tag ?? 0;
-          const values = dataObject.data;
+          if (dataObject != null) {
+            const config = dataObject.config;
+            const frequency = dataObject.freq;
+            const interval_tag = interval?.interval_tag ?? 0;
+            const values = dataObject.data;
 
-          const visit_id = interval?.visit.id;
-          const data: BioSensorData[] = values?.map((value: BioData) => {
-            return {
-              time: Date.now(),
-              visit_id: visit_id,
-              interval_tag: interval_tag,
-              config: config,
-              frequency: frequency,
-              bioImpedance: value.bioImpedance,
-              phaseAngle: value.phaseAngle,
-            };
-          });
-          sensor.bulkInsertBioSensorData(data);
-          setnumPoints(values);
+            const visit_id = interval?.visit.id;
+            const data: BioSensorData[] = values?.map((value: BioData) => {
+              return {
+                time: Date.now(),
+                visit_id: visit_id,
+                interval_tag: interval_tag,
+                config: config,
+                frequency: frequency,
+                bioImpedance: value.bioImpedance,
+                phaseAngle: value.phaseAngle,
+              };
+            });
+            sensor.bulkInsertBioSensorData(data);
+            setnumPoints(values);
+          }
         },
       });
 
