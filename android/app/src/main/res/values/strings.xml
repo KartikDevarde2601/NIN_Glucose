@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">NIN</string>
+    <string name="launch_screen_description">Launch screen image</string>
 </resources>
