@@ -28,6 +28,7 @@ export const useEventListeners = (mqttClient: MqttClient | undefined) => {
 
     const onDisconnectFailureListener = mqttClient?.setOnDisconnectCallback(
       ack => {
+        console.log('Client Disconnected');
         console.log('Client Connection Failure Listner', ack);
         mqtt.updateIsConnected(false);
         mqtt.updateStatus(ConnectionStatus.DISCONNECTED);

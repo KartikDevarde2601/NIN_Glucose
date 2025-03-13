@@ -65,8 +65,6 @@ const BioImpedanceScreen: FC<BioImpedanceScreenProps> = observer(({route}) => {
   const [isGeneratingCsv, setIsGeneratingCsv] = useState<boolean>(false);
 
   const dbService = useMemo(() => DatabaseService.getInstance(), []);
-  console.log(interval?.dataPoints);
-
   // Get visit_id from route params
   const interval_id = route.params.interval_id;
 
