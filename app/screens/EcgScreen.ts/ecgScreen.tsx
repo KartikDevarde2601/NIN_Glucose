@@ -14,7 +14,6 @@ import {RouteProp} from '@react-navigation/native';
 import {Interval} from '../../watermelodb/models/interval';
 import {database} from '../../watermelodb/database';
 import SimpleGraph from './graphECG';
-import {useStores} from '../../models';
 import {
   SensorRepository,
   EcgSensorData,
@@ -47,8 +46,6 @@ const EcgScreen: FC<EcgScreenProps> = ({route}) => {
   // Get visit_id from route params
   const interval_id = route.params.interval_id;
 
-  const {mqtt} = useStores();
-
   const theme = useTheme();
   const _goBack = () => {
     console.log('back');
@@ -68,50 +65,6 @@ const EcgScreen: FC<EcgScreenProps> = ({route}) => {
 
     fetchInterval();
   }, [interval_id]);
-
-  const subscribeToECG = async () => {
-    if (mqtt.client) {
-      mqtt.client.subscribe({
-        topic: 'ecg',
-        qos: MqttQos.EXACTLY_ONCE,
-        onSuccess: ack => {
-          setIsSubscribe(true);
-        },
-        onError: error => {
-          setIsSubscribe(false);
-        },
-        onEvent: async ({payload}) => {
-          const dataObject = JSON.parse(payload);
-          const interval_tag = interval?.interval_tag ?? 0;
-          const values = dataObject.data;
-
-          const visit_id = interval?.visit.id;
-          const data: EcgSensorData[] = values.map((value: EcgData) => {
-            return {
-              visit_id: visit_id,
-              interval_tag: interval_tag,
-              time: value.time,
-              ecg: value.ecg,
-            };
-          });
-          const result = await sensor.bulkInsertEcgSensorData(data);
-          if (result) {
-            setnumPoints(values);
-          }
-        },
-      });
-    }
-  };
-
-  const publish = (topic: string, payload: any) => {
-    const paylaod = {
-      topic: topic,
-      payload: payload,
-    };
-    mqtt.client?.publish(paylaod).then(ack => {
-      console.log(`publish topic with ack ${ack}`);
-    });
-  };
 
   return (
     <SafeAreaView style={{flex: 1, backgroundColor: theme.colors.background}}>
@@ -133,16 +86,12 @@ const EcgScreen: FC<EcgScreenProps> = ({route}) => {
         <View style={{flex: 1, flexDirection: 'row'}}>
           <TouchableOpacity
             style={styles.headerRight}
-            onPress={() => mqtt.connect()}>
-            <Icon
-              source="access-point"
-              size={30}
-              color={mqtt.isconnected ? 'green' : 'red'}
-            />
+            onPress={() => console.log('connect')}>
+            <Icon source="access-point" size={30} color="red" />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.headerRight}
-            onPress={() => subscribeToECG()}>
+            onPress={() => console.log('subscribe')}>
             <Icon
               source="access-point"
               size={30}
@@ -180,7 +129,7 @@ const EcgScreen: FC<EcgScreenProps> = ({route}) => {
       {/* Control Buttons */}
       <View style={[styles.buttonContainer]}>
         <Button
-          onPress={() => publish('nin/ecg', 'start')}
+          onPress={() => console.log('publish start')}
           mode="contained"
           icon="play"
           style={styles.button}
@@ -188,7 +137,7 @@ const EcgScreen: FC<EcgScreenProps> = ({route}) => {
           Start
         </Button>
         <Button
-          onPress={() => publish('nin/ecg', 'stop')}
+          onPress={() => console.log('publish stop')}
           mode="contained"
           icon="stop"
           style={styles.button}

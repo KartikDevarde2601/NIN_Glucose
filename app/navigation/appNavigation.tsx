@@ -20,7 +20,6 @@ import enhanceIntervalListScreen from '../screens/intervalScreen';
 import BioImpedanceScreen from '../screens/BioImpedanceScreen/bioImpededanceScreen';
 import EcgScreen from '../screens/EcgScreen.ts/ecgScreen';
 
-import {SettingScreen} from '../screens/settingScreen';
 import {useStores} from '../models';
 import {FontAwesomeIcon} from '@fortawesome/react-native-fontawesome';
 import {observer} from 'mobx-react-lite';
@@ -48,7 +47,6 @@ export type TabParamList = {
   home: undefined;
   addpatient: undefined;
   profile: undefined;
-  setting: undefined;
 };
 
 type StylesType = {
@@ -83,16 +81,6 @@ const HomeTab: React.FC = () => (
         tabBarLabel: 'AddPatient',
         tabBarIcon: ({color}: {color: string}) => (
           <FontAwesomeIcon icon={faUserPlus} color={color} size={24} />
-        ),
-      }}
-    />
-    <Tab.Screen
-      name="setting"
-      component={SettingScreen}
-      options={{
-        tabBarLabel: 'setting',
-        tabBarIcon: ({color}: {color: string}) => (
-          <FontAwesomeIcon icon={faGear} color={color} size={24} />
         ),
       }}
     />

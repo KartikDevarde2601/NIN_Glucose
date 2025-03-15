@@ -34,7 +34,6 @@ import {DataPoint} from './graphBIO';
 import {create_csv_andSave} from '../../utils/csvgenerator';
 import {DatabaseService, OP_DB_TABLE} from '../../op-sqllite/databaseService';
 import {useNavigation} from '@react-navigation/native';
-import {useEventListeners} from '../../hook/useEventListernMqtt';
 
 enum MqttQos {
   AT_MOST_ONCE = 0,
@@ -56,7 +55,6 @@ const BioImpedanceScreen: FC<BioImpedanceScreenProps> = observer(({route}) => {
   const _goBack = () => {
     navigation.goBack();
   };
-  const {mqtt} = useStores();
   const [interval, setInterval] = useState<Interval | undefined>(undefined);
   const [numPoints, setnumPoints] = useState<DataPoint[]>([]); // Initialize with empty array
   const [isSubscribe, setIsSubscribe] = useState<boolean>(false);
@@ -98,88 +96,6 @@ const BioImpedanceScreen: FC<BioImpedanceScreenProps> = observer(({route}) => {
     const datapoints = interval?.dataPoints || '60';
 
     return `${sensorType}:${config}:${frequency}:${datapoints}`;
-  };
-
-  const start_bioImpedance = () => {
-    if (interval) {
-      const data = constructPayloadString(interval);
-      const paylaod = {
-        topic: 'esp/bio/data',
-        payload: data,
-      };
-      mqtt.client?.publish(paylaod).then(ack => {
-        console.log(`publish topic with ack ${ack}`);
-        setIsCollecting(true);
-      });
-    } else {
-      console.log('interval is undefined');
-    }
-  };
-
-  const stop_bioImpedance = () => {
-    const paylaod = {
-      topic: 'esp/bio/command',
-      payload: 'stop',
-    };
-    mqtt.client?.publish(paylaod).then(ack => {
-      console.log(`publish topic with ack ${ack}`);
-      setIsCollecting(false);
-    });
-  };
-
-  const subscribeToBIO = async () => {
-    if (mqtt.client) {
-      mqtt.client.subscribe({
-        topic: 'mobile/bio/data',
-        qos: MqttQos.EXACTLY_ONCE,
-        onSuccess: ack => {
-          setIsSubscribe(true);
-        },
-        onError: error => {
-          setIsSubscribe(false);
-        },
-        onEvent: ({payload}) => {
-          const dataObject = JSON.parse(payload);
-          if (dataObject != null) {
-            const config = dataObject.config;
-            const frequency = dataObject.freq;
-            const interval_tag = interval?.interval_tag ?? 0;
-            const values = dataObject.data;
-
-            const visit_id = interval?.visit.id;
-            const data: BioSensorData[] = values?.map((value: BioData) => {
-              return {
-                time: Date.now(),
-                visit_id: visit_id,
-                interval_tag: interval_tag,
-                config: config,
-                frequency: frequency,
-                bioImpedance: value.bioImpedance,
-                phaseAngle: value.phaseAngle,
-              };
-            });
-            sensor.bulkInsertBioSensorData(data);
-            setnumPoints(values);
-          }
-        },
-      });
-
-      mqtt.client.subscribe({
-        topic: 'mobile/bio/command',
-        qos: MqttQos.EXACTLY_ONCE,
-        onSuccess: ack => {
-          setIsSubscribe(true);
-        },
-        onError: error => {
-          setIsSubscribe(false);
-        },
-        onEvent: ({payload}) => {
-          if (payload === 'completed') {
-            setCompleted(true);
-          }
-        },
-      });
-    }
   };
 
   const generator_csv = async () => {
@@ -244,8 +160,6 @@ const BioImpedanceScreen: FC<BioImpedanceScreenProps> = observer(({route}) => {
     }
   };
 
-  useEventListeners(mqtt.client!);
-
   return (
     <SafeAreaView style={{flex: 1, backgroundColor: theme.colors.background}}>
       {/* Header */}
@@ -266,16 +180,12 @@ const BioImpedanceScreen: FC<BioImpedanceScreenProps> = observer(({route}) => {
         <View style={{flex: 1, flexDirection: 'row'}}>
           <TouchableOpacity
             style={styles.headerRight}
-            onPress={() => mqtt.connect()}>
-            <Icon
-              source="access-point"
-              size={30}
-              color={mqtt.isconnected ? 'green' : 'red'}
-            />
+            onPress={() => console.log('connect')}>
+            <Icon source="access-point" size={30} color="red" />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.headerRight}
-            onPress={() => subscribeToBIO()}>
+            onPress={() => console.log('subcribe ')}>
             <Icon
               source="access-point"
               size={30}
@@ -334,7 +244,7 @@ const BioImpedanceScreen: FC<BioImpedanceScreenProps> = observer(({route}) => {
       {/* Control Buttons */}
       <View style={[styles.buttonContainer]}>
         <Button
-          onPress={() => start_bioImpedance()}
+          onPress={() => console.log('start')}
           mode="contained"
           icon="play"
           style={styles.button}
@@ -342,7 +252,7 @@ const BioImpedanceScreen: FC<BioImpedanceScreenProps> = observer(({route}) => {
           Start
         </Button>
         <Button
-          onPress={() => stop_bioImpedance()}
+          onPress={() => console.log('stop')}
           mode="contained"
           icon="stop"
           style={styles.button}

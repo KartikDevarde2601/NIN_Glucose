@@ -6,24 +6,14 @@ import {useNavigation, NavigationProp} from '@react-navigation/native';
 import {RootStackParamList} from '../../navigation/appNavigation';
 import {Searchbar} from 'react-native-paper';
 import {database} from '../../watermelodb/database';
-import {useStores} from '../../models';
 import {DatabaseService, OP_DB_TABLE} from '../../op-sqllite/databaseService';
 import {observer} from 'mobx-react-lite';
 
 const HomeScreen: React.FC = observer(() => {
   const [searchQuery, setSearchQuery] = useState('');
   const dbService = useMemo(() => DatabaseService.getInstance(), []);
-  const {mqtt} = useStores();
 
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
-
-  useEffect(() => {
-    const initMqtt = async () => {
-      await mqtt.initializeClient();
-    };
-
-    initMqtt();
-  }, [mqtt.clientId]);
 
   return (
     <View style={styles.container}>

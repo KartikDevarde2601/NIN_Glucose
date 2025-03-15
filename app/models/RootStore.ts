@@ -1,6 +1,5 @@
 import {Instance, SnapshotOut, types} from 'mobx-state-tree';
 import {AuthenticationStoreModel} from './AuthenticationStore';
-import {MqttStore} from './mqtt';
 import {SyncStatusModel} from './syncIndicator';
 import {SyncStatus_Enum} from './syncIndicator';
 /**
@@ -8,7 +7,6 @@ import {SyncStatus_Enum} from './syncIndicator';
  */
 export const RootStoreModel = types.model('RootStore').props({
   authenticationStore: types.optional(AuthenticationStoreModel, {}),
-  mqtt: types.optional(MqttStore, {}),
   sync: types.optional(SyncStatusModel, {
     pdstatus: SyncStatus_Enum.NoData,
     pdtimestamp: undefined,
