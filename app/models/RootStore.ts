@@ -1,5 +1,6 @@
 import {Instance, SnapshotOut, types} from 'mobx-state-tree';
 import {AuthenticationStoreModel} from './AuthenticationStore';
+import {ImpedanceBLEStoreModel} from './ImpedanceBLEStore';
 import {SyncStatusModel} from './syncIndicator';
 import {SyncStatus_Enum} from './syncIndicator';
 /**
@@ -7,6 +8,7 @@ import {SyncStatus_Enum} from './syncIndicator';
  */
 export const RootStoreModel = types.model('RootStore').props({
   authenticationStore: types.optional(AuthenticationStoreModel, {}),
+  impedanceBLE: types.optional(ImpedanceBLEStoreModel, {}),
   sync: types.optional(SyncStatusModel, {
     pdstatus: SyncStatus_Enum.NoData,
     pdtimestamp: undefined,

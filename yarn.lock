@@ -6547,6 +6547,11 @@ react-is@^17.0.1:
   resolved "https://registry.yarnpkg.com/react-is/-/react-is-17.0.2.tgz#e691d4a8e9c789365655539ab372762b0efb54f0"
   integrity sha512-w2GsyukL62IJnlaff/nRegPQR94C/XXamvMWmSHRJ4y7Ts/4ocGRmTHvOs8PSE6pB3dWOrD/nueuU5sduBsQ4w==
 
+react-native-ble-manager@^11.0.0:
+  version "11.6.0"
+  resolved "https://registry.yarnpkg.com/react-native-ble-manager/-/react-native-ble-manager-11.6.0.tgz#065986ccd7853493d930120f35659cff2bd7a8a2"
+  integrity sha512-ziyq0eX0trrlMHD3IcDg0YNcNE1bXmiAIC8n8W5X/mAfCJihPjBv/VaAg1QFwGRXiwzOAqwRA8XHiEQz9nSejQ==
+
 react-native-csv@^0.2.0:
   version "0.2.0"
   resolved "https://registry.yarnpkg.com/react-native-csv/-/react-native-csv-0.2.0.tgz#fde3945dc05891ce4a33e1761c9b41a4c84895d0"

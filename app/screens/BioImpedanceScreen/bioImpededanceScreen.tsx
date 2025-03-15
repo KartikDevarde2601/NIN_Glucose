@@ -50,6 +50,7 @@ interface BioImpedanceScreenProps extends RootStackParamList {
 const sensor = new SensorRepository();
 
 const BioImpedanceScreen: FC<BioImpedanceScreenProps> = observer(({route}) => {
+  const {impedanceBLE} = useStores();
   const navigation = useNavigation();
   const theme = useTheme();
   const _goBack = () => {
@@ -80,6 +81,16 @@ const BioImpedanceScreen: FC<BioImpedanceScreenProps> = observer(({route}) => {
 
     fetchInterval();
   }, [interval_id]);
+
+  useEffect(() => {
+    impedanceBLE.setup().then(success => {
+      if (success) {
+        console.log('BLE setup completed successfully');
+      } else {
+        console.error('BLE setup failed');
+      }
+    });
+  }, []);
 
   const constructPayloadString = (interval: Interval): string => {
     const frequencies = interval?.frequencies
