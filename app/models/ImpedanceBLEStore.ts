@@ -1,30 +1,19 @@
 import {Platform, PermissionsAndroid} from 'react-native';
-import {Instance, SnapshotIn, SnapshotOut, types, flow} from 'mobx-state-tree';
+import {Instance, SnapshotIn, SnapshotOut, types} from 'mobx-state-tree';
 import {withSetPropAction} from './helpers/withSetPropAction';
-import BleManager, {
-  BleDisconnectPeripheralEvent,
-  BleManagerDidUpdateValueForCharacteristicEvent,
-  BleScanCallbackType,
-  BleScanMatchMode,
-  BleScanMode,
-  Peripheral,
-  PeripheralInfo,
-} from 'react-native-ble-manager';
+import BleManager from 'react-native-ble-manager';
+import {NativeEventEmitter, NativeModules} from 'react-native';
 
-// Constants (example UUIDs)
-const SERVICE_UUID_SENSOR = '9b3333b4-8307-471b-95d1-17fa46507379';
-const CHARACTERISTIC_SENSOR_DATA = '766def80-beba-45d1-bad9-4f80ceba5938';
-const CHARACTERISTIC_UUID_COMMAND = 'ea8145ec-d810-471a-877e-177ce5841b63';
-const CHARACTERISTIC_UUID_INTERRUPT = '9bcec788-0cba-4437-b3b0-b53f0ee37312';
+const BleManagerModule = NativeModules.BleManager;
+const bleManagerEmitter = new NativeEventEmitter(BleManagerModule);
 
-export const ImpedanceBLEStoreModel = types
-  .model('ImpedanceBLEStore', {
+export const BLEStoreModel = types
+  .model('BLE', {
     isConnected: types.optional(types.boolean, false),
     deviceId: types.optional(types.string, ''),
     deviceName: types.optional(types.string, ''),
     connectionStatus: types.optional(types.string, 'Disconnected'),
     isScanning: types.optional(types.boolean, false),
-    dataReceived: types.optional(types.array(types.number), []),
     isCollecting: types.optional(types.boolean, false),
   })
   .volatile(self => ({
@@ -32,101 +21,169 @@ export const ImpedanceBLEStoreModel = types
     dataListener: null as any,
   }))
   .actions(withSetPropAction)
-  .views(self => ({}))
   .actions(self => {
-    const checkPermissions = flow(function* checkPermissions() {
-      if (Platform.OS === 'android' && Platform.Version >= 31) {
-        PermissionsAndroid.requestMultiple([
-          PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
-          PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
-        ]).then(result => {
-          if (result) {
-            console.debug(
-              '[handleAndroidPermissions] User accepts runtime permissions android 12+',
-            );
-          } else {
-            console.error(
-              '[handleAndroidPermissions] User refuses runtime permissions android 12+',
-            );
-          }
-        });
-      } else if (Platform.OS === 'android' && Platform.Version >= 23) {
-        PermissionsAndroid.check(
-          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-        ).then(checkResult => {
-          if (checkResult) {
-            console.debug(
-              '[handleAndroidPermissions] runtime permission Android <12 already OK',
-            );
-          } else {
-            PermissionsAndroid.request(
-              PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-            ).then(requestResult => {
-              if (requestResult) {
-                console.debug(
-                  '[handleAndroidPermissions] User accepts runtime permission android <12',
-                );
-              } else {
-                console.error(
-                  '[handleAndroidPermissions] User refuses runtime permission android <12',
-                );
-              }
-            });
-          }
-        });
-      }
-      return;
-    });
-
-    const initializeBluetooth = flow(function* initializeBluetooth() {
-      const state = yield BleManager.checkState();
-      if (state !== 'on') {
-        BleManager.enableBluetooth().then(() => {
-          console.log('The bluetooth is already enabled or the user confirm');
-        });
-      } else {
-        console.log('The user refuse to enable bluetooth');
-      }
-    });
-
-    // A synchronous helper to setup event listeners.
-    const setupEventListeners = () => {
-      console.log('Setting up event listeners...');
-      // Add event listener setup logic here.
+    // Add an action to remove all listeners.
+    const removeEventListeners = () => {
+      console.log('Removing all event listeners...');
+      self.listeners.forEach((listener: any) => {
+        listener.remove();
+      });
+      self.listeners = [];
     };
 
-    // The main setup action which calls the others.
-    const setup = flow(function* setup() {
-      BleManager.start({showAlert: false});
-      console.log(
-        'Starting BLE Manager (BleManager.start({ showAlert: false }))',
-      );
+    // Convert connectToDevice to a regular async function.
+    const connectToDevice = async (targetDeviceName: string) => {
       try {
-        yield checkPermissions();
-        yield initializeBluetooth();
-        //setupEventListeners();
+        console.log('Scanning for device...');
+        BleManager.scan([], 5, true);
+        self.setProp('isScanning', true);
+        self.setProp('connectionStatus', 'Scanning...');
+
+        const discoveryListener = bleManagerEmitter.addListener(
+          'BleManagerDiscoverPeripheral',
+          async ({id, name, advertising}) => {
+            const discoveredName = name || advertising?.localName || null;
+
+            if (discoveredName === targetDeviceName) {
+              console.log(`Found device: ${name}, connecting...`);
+              BleManager.stopScan();
+              discoveryListener.remove();
+
+              await BleManager.connect(id);
+              console.log(`Connected to: ${name}`);
+
+              await BleManager.retrieveServices(id);
+              console.log('Services retrieved');
+
+              if (Platform.OS === 'android') {
+                await BleManager.requestMTU(id, 251);
+                console.log('MTU set');
+              }
+              // Use setProp to update state
+              self.setProp('isConnected', true);
+              self.setProp('deviceId', id);
+              self.setProp('connectionStatus', `Connected to ${name}`);
+            }
+          },
+        );
+        // Optionally store the discovery listener if you want to remove it later
+        self.listeners.push(discoveryListener);
+
+        // Stop scanning after 5 seconds if device isn't found
+        setTimeout(() => {
+          BleManager.stopScan();
+          discoveryListener.remove();
+          self.setProp('isScanning', false);
+        }, 5000);
+      } catch (error) {
+        console.error('Connection error:', error);
+        self.setProp('isConnected', false);
+        self.setProp('connectionStatus', 'Connection failed');
+      }
+    };
+
+    const checkPermissions = async () => {
+      try {
+        if (Platform.OS === 'android' && Platform.Version >= 31) {
+          const result = await PermissionsAndroid.requestMultiple([
+            PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
+            PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
+          ]);
+          console.log('Permissions:', result);
+        } else if (Platform.OS === 'android' && Platform.Version >= 23) {
+          const granted = await PermissionsAndroid.request(
+            PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+          );
+          if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+            console.log('Location permission granted');
+          } else {
+            console.warn('Location permission denied');
+          }
+        }
+      } catch (error) {
+        console.error('Permission check failed:', error);
+      }
+    };
+
+    const initializeBluetooth = async () => {
+      try {
+        const state = await BleManager.checkState();
+        if (state !== 'on') {
+          await BleManager.enableBluetooth();
+          console.log('Bluetooth enabled');
+        } else {
+          console.log('Bluetooth already enabled');
+        }
+      } catch (error) {
+        console.error('Failed to enable Bluetooth:', error);
+      }
+    };
+
+    // Disconnect function to disconnect from the BLE device
+    const disconnectDevice = async () => {
+      try {
+        if (self.isConnected && self.deviceId) {
+          await BleManager.disconnect(self.deviceId);
+          console.log(`Disconnected from device: ${self.deviceId}`);
+          self.setProp('isConnected', false);
+          self.setProp('connectionStatus', 'Disconnected');
+          self.setProp('deviceId', '');
+        } else {
+          console.log('No device is connected');
+        }
+      } catch (error) {
+        console.error('Error disconnecting device:', error);
+      }
+    };
+
+    const setupEventListeners = () => {
+      console.log('Setting up event listeners...');
+      const disconnectListener = bleManagerEmitter.addListener(
+        'BleManagerDisconnectPeripheral',
+        ({peripheral}) => {
+          console.log(`Device disconnected: ${peripheral}`);
+          self.setProp('isConnected', false);
+          self.setProp('connectionStatus', 'Disconnected');
+        },
+      );
+      self.listeners.push(disconnectListener);
+    };
+
+    const setup = async () => {
+      try {
+        BleManager.start({showAlert: false});
+        console.log('BLE Manager started');
+        await checkPermissions();
+        await initializeBluetooth();
+        setupEventListeners();
         return true;
       } catch (error) {
         console.error('Setup failed:', error);
         return false;
       }
-    });
+    };
 
-    return {checkPermissions, initializeBluetooth, setupEventListeners, setup};
+    return {
+      connectToDevice,
+      checkPermissions,
+      initializeBluetooth,
+      setupEventListeners,
+      setup,
+      removeEventListeners,
+      disconnectDevice,
+    };
   });
 
-// Extend the instance interface so that TypeScript knows about the custom actions.
-export interface ImpedanceBLEStore
-  extends Instance<typeof ImpedanceBLEStoreModel> {
+export interface ImpedanceBLEStore extends Instance<typeof BLEStoreModel> {
   checkPermissions: () => Promise<void>;
   initializeBluetooth: () => Promise<void>;
   setupEventListeners: () => void;
   setup: () => Promise<boolean>;
 }
-export interface ImpedanceBLEStoreSnapshotOut
-  extends SnapshotOut<typeof ImpedanceBLEStoreModel> {}
-export interface ImpedanceBLEStoreSnapshotIn
-  extends SnapshotIn<typeof ImpedanceBLEStoreModel> {}
 
-// Create a default instance function (optionally used for dependency injection)
-export const createImpedanceBLEStore = () => ImpedanceBLEStoreModel.create({});
+export interface BLEStoreSnapshotOut
+  extends SnapshotOut<typeof BLEStoreModel> {}
+
+export interface BLEStoreSnapshotIn extends SnapshotIn<typeof BLEStoreModel> {}
+
+export const createImpedanceBLEStore = () => BLEStoreModel.create({});

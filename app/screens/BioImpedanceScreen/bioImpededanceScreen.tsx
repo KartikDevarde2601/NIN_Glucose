@@ -50,7 +50,7 @@ interface BioImpedanceScreenProps extends RootStackParamList {
 const sensor = new SensorRepository();
 
 const BioImpedanceScreen: FC<BioImpedanceScreenProps> = observer(({route}) => {
-  const {impedanceBLE} = useStores();
+  const {BLE} = useStores();
   const navigation = useNavigation();
   const theme = useTheme();
   const _goBack = () => {
@@ -83,13 +83,16 @@ const BioImpedanceScreen: FC<BioImpedanceScreenProps> = observer(({route}) => {
   }, [interval_id]);
 
   useEffect(() => {
-    impedanceBLE.setup().then(success => {
+    BLE.setup().then(success => {
       if (success) {
-        console.log('BLE setup completed successfully');
-      } else {
-        console.error('BLE setup failed');
+        BLE.connectToDevice('NIN_IMPEDANCE');
       }
     });
+    // Cleanup function to remove listeners when component unmounts
+    return () => {
+      BLE.disconnectDevice();
+      BLE.removeEventListeners();
+    };
   }, []);
 
   const constructPayloadString = (interval: Interval): string => {
@@ -191,16 +194,11 @@ const BioImpedanceScreen: FC<BioImpedanceScreenProps> = observer(({route}) => {
         <View style={{flex: 1, flexDirection: 'row'}}>
           <TouchableOpacity
             style={styles.headerRight}
-            onPress={() => console.log('connect')}>
-            <Icon source="access-point" size={30} color="red" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.headerRight}
-            onPress={() => console.log('subcribe ')}>
+            onPress={() => BLE.connectToDevice('NIN_IMPEDANCE')}>
             <Icon
-              source="access-point"
+              source="bluetooth"
               size={30}
-              color={isSubscribe ? 'green' : 'red'}
+              color={BLE.isConnected ? 'green' : 'red'}
             />
           </TouchableOpacity>
         </View>
@@ -209,26 +207,31 @@ const BioImpedanceScreen: FC<BioImpedanceScreenProps> = observer(({route}) => {
       {/* Divider*/}
       <Divider />
       {/* Glucose Load Chip */}
-      <View style={styles.chipContainer}>
-        <Chip icon="clock-time-eight" mode="outlined" style={styles.chip}>
-          {interval ? `${interval.interval_tag}-interval` : 'No tag'}
-        </Chip>
-        <Chip
-          icon={
-            completed
-              ? 'check-circle'
+      <View>
+        <View style={styles.chipContainer}>
+          <Chip icon="clock-time-eight" mode="outlined" style={styles.chip}>
+            {interval ? `${interval.interval_tag}-interval` : 'No tag'}
+          </Chip>
+          <Chip
+            icon={
+              completed
+                ? 'check-circle'
+                : isCollecting
+                ? 'progress-clock'
+                : 'information'
+            }
+            mode="outlined"
+            style={styles.chip}>
+            {completed
+              ? 'Completed'
               : isCollecting
-              ? 'progress-clock'
-              : 'information'
-          }
-          mode="outlined"
-          style={styles.chip}>
-          {completed
-            ? 'Completed'
-            : isCollecting
-            ? 'Collecting'
-            : 'Not Started'}
-        </Chip>
+              ? 'Collecting'
+              : 'Not Started'}
+          </Chip>
+          <Chip icon="clock-time-eight" mode="outlined" style={styles.chip}>
+            {BLE.connectionStatus}
+          </Chip>
+        </View>
       </View>
 
       {/* Graph Containers */}
@@ -303,6 +306,7 @@ const styles = StyleSheet.create({
     padding: 16,
     alignItems: 'center',
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 8,
   },
   chip: {
