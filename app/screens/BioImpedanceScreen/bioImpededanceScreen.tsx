@@ -1,4 +1,4 @@
-import React, {useEffect, useState, useMemo} from 'react';
+import React, {useEffect, useState, useMemo, useCallback} from 'react';
 import {FC} from 'react';
 import {
   SafeAreaView,
@@ -7,15 +7,7 @@ import {
   StyleSheet,
   TouchableOpacity,
 } from 'react-native';
-import {
-  Text,
-  Appbar,
-  Chip,
-  Button,
-  Surface,
-  Icon,
-  Divider,
-} from 'react-native-paper';
+import {Appbar, Chip, Button, Surface, Icon, Divider} from 'react-native-paper';
 import {useTheme} from 'react-native-paper';
 import {useStores} from '../../models';
 import {observer} from 'mobx-react-lite';
@@ -24,22 +16,11 @@ import {RouteProp} from '@react-navigation/native';
 import {Interval} from '../../watermelodb/models/interval';
 import {database} from '../../watermelodb/database';
 import Toast from 'react-native-toast-message';
-import {
-  SensorRepository,
-  BioSensorData,
-  BioData,
-} from '../../op-sqllite/sensorRepository';
+
 import SimpleGraph from './graphBIO';
-import {DataPoint} from './graphBIO';
 import {create_csv_andSave} from '../../utils/csvgenerator';
 import {DatabaseService, OP_DB_TABLE} from '../../op-sqllite/databaseService';
 import {useNavigation} from '@react-navigation/native';
-
-enum MqttQos {
-  AT_MOST_ONCE = 0,
-  AT_LEAST_ONCE = 1,
-  EXACTLY_ONCE = 2,
-}
 
 const DEFAULT_WIDTH = Dimensions.get('screen').width - 50;
 
@@ -47,20 +28,15 @@ interface BioImpedanceScreenProps extends RootStackParamList {
   route: RouteProp<RootStackParamList, 'bioImpedance'>;
 }
 
-const sensor = new SensorRepository();
-
 const BioImpedanceScreen: FC<BioImpedanceScreenProps> = observer(({route}) => {
-  const {BLE} = useStores();
+  const {BLE, serviceManager} = useStores();
+  const {impedanceService} = serviceManager;
   const navigation = useNavigation();
   const theme = useTheme();
   const _goBack = () => {
     navigation.goBack();
   };
-  const [interval, setInterval] = useState<Interval | undefined>(undefined);
-  const [numPoints, setnumPoints] = useState<DataPoint[]>([]); // Initialize with empty array
-  const [isSubscribe, setIsSubscribe] = useState<boolean>(false);
-  const [isCollecting, setIsCollecting] = useState<boolean>(false);
-  const [completed, setCompleted] = useState<boolean>(false);
+
   const [isGeneratingCsv, setIsGeneratingCsv] = useState<boolean>(false);
 
   const dbService = useMemo(() => DatabaseService.getInstance(), []);
@@ -73,7 +49,7 @@ const BioImpedanceScreen: FC<BioImpedanceScreenProps> = observer(({route}) => {
         const interval = (await database.collections
           .get('intervals')
           .find(interval_id)) as Interval;
-        setInterval(interval);
+        impedanceService.setInterval(interval);
       } catch (error) {
         console.error('Error fetching interval:', error);
       }
@@ -92,6 +68,7 @@ const BioImpedanceScreen: FC<BioImpedanceScreenProps> = observer(({route}) => {
     return () => {
       BLE.disconnectDevice();
       BLE.removeEventListeners();
+      impedanceService.resetState();
     };
   }, []);
 
@@ -105,24 +82,31 @@ const BioImpedanceScreen: FC<BioImpedanceScreenProps> = observer(({route}) => {
       : null;
 
     const sensorType = 'bioImpedance';
-    const config = configies?.configuration?.join(',') || ''; // Convert array to comma-separated string
-    const frequency = frequencies?.frequencies?.join(',') || ''; // Convert array to comma-separated string
+    const config = configies?.configuration?.join(',') || '';
+    const frequency = frequencies?.frequencies?.join(',') || '';
     const datapoints = interval?.dataPoints || '60';
 
     return `${sensorType}:${config}:${frequency}:${datapoints}`;
   };
 
+  const start = useCallback(() => {
+    if (impedanceService.currentInterval) {
+      const payload = constructPayloadString(impedanceService.currentInterval);
+      serviceManager.impedanceService.startDataCollection(payload);
+    }
+  }, [impedanceService.currentInterval]);
+
   const generator_csv = async () => {
     try {
       setIsGeneratingCsv(true);
-      const configies: any = interval?.configuration
-        ? JSON.parse(interval.configuration)
+      const configies: any = impedanceService.currentInterval?.configuration
+        ? JSON.parse(impedanceService.currentInterval.configuration)
         : null;
 
       await create_csv_andSave(
         configies.configuration,
-        interval?.visit.id,
-        interval?.interval_tag ?? 0,
+        impedanceService.currentInterval?.visit.id,
+        impedanceService.currentInterval?.interval_tag ?? 0,
         dbService,
       );
     } finally {
@@ -139,8 +123,7 @@ const BioImpedanceScreen: FC<BioImpedanceScreenProps> = observer(({route}) => {
 
       await dbService.execute(deleteQuery, [visitId, interval_tag]);
 
-      // Clear the graph points
-      setnumPoints([]);
+      impedanceService.setImpedanceData([]);
 
       // Show success toast
       Toast.show({
@@ -156,8 +139,7 @@ const BioImpedanceScreen: FC<BioImpedanceScreenProps> = observer(({route}) => {
       console.log('deleted');
 
       // Reset states
-      setCompleted(false);
-      setIsCollecting(false);
+      impedanceService.setIsDataCollecting(false);
     } catch (error) {
       console.error('Error discarding data:', error);
 
@@ -201,6 +183,15 @@ const BioImpedanceScreen: FC<BioImpedanceScreenProps> = observer(({route}) => {
               color={BLE.isConnected ? 'green' : 'red'}
             />
           </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.headerRight}
+            onPress={() => serviceManager.initializeServices()}>
+            <Icon
+              source="access-point"
+              size={30}
+              color={impedanceService.isActive ? 'green' : 'red'}
+            />
+          </TouchableOpacity>
         </View>
       </Appbar.Header>
 
@@ -210,21 +201,23 @@ const BioImpedanceScreen: FC<BioImpedanceScreenProps> = observer(({route}) => {
       <View>
         <View style={styles.chipContainer}>
           <Chip icon="clock-time-eight" mode="outlined" style={styles.chip}>
-            {interval ? `${interval.interval_tag}-interval` : 'No tag'}
+            {impedanceService.currentInterval
+              ? `${impedanceService.currentInterval.interval_tag}-interval`
+              : 'No tag'}
           </Chip>
           <Chip
             icon={
-              completed
+              impedanceService.isCompleted
                 ? 'check-circle'
-                : isCollecting
+                : impedanceService.isDataCollecting
                 ? 'progress-clock'
                 : 'information'
             }
             mode="outlined"
             style={styles.chip}>
-            {completed
+            {impedanceService.isCompleted
               ? 'Completed'
-              : isCollecting
+              : impedanceService.isDataCollecting
               ? 'Collecting'
               : 'Not Started'}
           </Chip>
@@ -238,7 +231,9 @@ const BioImpedanceScreen: FC<BioImpedanceScreenProps> = observer(({route}) => {
       <View style={styles.graphsWrapper}>
         <Surface style={styles.graphContainer} elevation={2}>
           <SimpleGraph
-            data={numPoints?.map(point => point.bioImpedance)}
+            data={impedanceService.latestImpedanceData?.map(
+              point => point.bioImpedance,
+            )}
             title="BioImpedance"
             graphColor="#ff6b6b"
             formatYLabel={v => `$${v.toFixed(2)}`}
@@ -247,7 +242,9 @@ const BioImpedanceScreen: FC<BioImpedanceScreenProps> = observer(({route}) => {
         </Surface>
         <Surface style={styles.graphContainer} elevation={2}>
           <SimpleGraph
-            data={numPoints?.map(point => point.phaseAngle)}
+            data={impedanceService.latestImpedanceData?.map(
+              point => point.phaseAngle,
+            )}
             title="PhaseAngel"
             graphColor="#ff6b6b"
             formatYLabel={v => `$${v.toFixed(2)}`}
@@ -258,7 +255,7 @@ const BioImpedanceScreen: FC<BioImpedanceScreenProps> = observer(({route}) => {
       {/* Control Buttons */}
       <View style={[styles.buttonContainer]}>
         <Button
-          onPress={() => console.log('start')}
+          onPress={() => start()}
           mode="contained"
           icon="play"
           style={styles.button}
@@ -276,7 +273,10 @@ const BioImpedanceScreen: FC<BioImpedanceScreenProps> = observer(({route}) => {
         <Button
           mode="outlined"
           onPress={() =>
-            _onDiscard(interval?.visit.id, interval?.interval_tag!!)
+            _onDiscard(
+              impedanceService.currentInterval?.visit.id,
+              impedanceService.currentInterval?.interval_tag!!,
+            )
           }
           icon="delete"
           style={styles.button}>

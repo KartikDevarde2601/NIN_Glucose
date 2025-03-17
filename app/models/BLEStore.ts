@@ -22,7 +22,6 @@ export const BLEStoreModel = types
   }))
   .actions(withSetPropAction)
   .actions(self => {
-    // Add an action to remove all listeners.
     const removeEventListeners = () => {
       console.log('Removing all event listeners...');
       self.listeners.forEach((listener: any) => {
@@ -31,7 +30,6 @@ export const BLEStoreModel = types
       self.listeners = [];
     };
 
-    // Convert connectToDevice to a regular async function.
     const connectToDevice = async (targetDeviceName: string) => {
       try {
         console.log('Scanning for device...');
@@ -163,6 +161,13 @@ export const BLEStoreModel = types
       }
     };
 
+    // Add a listener for BLE events
+    const addListener = (eventName: string, callback: (event: any) => void) => {
+      const listener = bleManagerEmitter.addListener(eventName, callback);
+      self.listeners.push(listener);
+      return listener;
+    };
+
     return {
       connectToDevice,
       checkPermissions,
@@ -171,6 +176,7 @@ export const BLEStoreModel = types
       setup,
       removeEventListeners,
       disconnectDevice,
+      addListener,
     };
   });
 

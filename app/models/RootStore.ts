@@ -1,14 +1,16 @@
 import {Instance, SnapshotOut, types} from 'mobx-state-tree';
 import {AuthenticationStoreModel} from './AuthenticationStore';
-import {BLEStoreModel} from './ImpedanceBLEStore';
+import {BLEStoreModel} from './BLEStore';
 import {SyncStatusModel} from './syncIndicator';
 import {SyncStatus_Enum} from './syncIndicator';
+import {BLEserviceModel} from './BLEServiceStore';
 /**
  * A RootStore model.
  */
 export const RootStoreModel = types.model('RootStore').props({
   authenticationStore: types.optional(AuthenticationStoreModel, {}),
   BLE: types.optional(BLEStoreModel, {}),
+  serviceManager: types.optional(BLEserviceModel, {}),
   sync: types.optional(SyncStatusModel, {
     pdstatus: SyncStatus_Enum.NoData,
     pdtimestamp: undefined,
