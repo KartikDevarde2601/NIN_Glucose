@@ -4,6 +4,46 @@ import RNFS from 'react-native-fs';
 import {DatabaseService} from '../op-sqllite/databaseService';
 import {Platform} from 'react-native';
 import {OP_DB_TABLE} from '../op-sqllite/databaseService';
+import {database} from '../watermelodb/database';
+import {Q} from '@nozbe/watermelondb';
+
+interface PatientInfo {
+  age: number;
+  alcoholConsumption: number;
+  alcoholFreeDays: number;
+  alcoholType: string;
+  antigenStatus: string;
+  bloodGroup: string;
+  clinical_id: string;
+  configuration: string; // JSON string, e.g., '{"configuration":["UPPERBODY","LEFTBODY","RIGHTBODY","LOWERBODY"]}'
+  contactInformation: string;
+  dailyConsumption: number;
+  dataPoints: string;
+  dateOfBirth: string;
+  diastolic: number;
+  email: string;
+  frequencies: string; // JSON string, e.g., '{"frequencies":["1","5","50","200"]}'
+  fullName: string;
+  gender: string;
+  height: number;
+  hemoglobin: number;
+  hereditaryHistory: string;
+  intervalType: string;
+  interval_id: string;
+  interval_tag: number;
+  overAllYearOfSmoking: number;
+  patient_id: string;
+  reacentHealthIssue: string;
+  smokingIndex: number;
+  smokingType: string;
+  systolic: number;
+  temperature: number;
+  visitDate: string;
+  visitNotes: string;
+  visitType: string;
+  visit_id: string;
+  weight: number;
+}
 
 const showToastCSV = () => {
   Toast.show({
@@ -26,6 +66,62 @@ const getQueryForConfig = (
   `;
 };
 
+const getPatientInfo = async (interval_id: string): Promise<PatientInfo[]> => {
+  const query = `
+    SELECT 
+      intervals.id AS interval_id,
+      intervals.intervalType,
+      intervals.interval_tag,
+      intervals.configuration,
+      intervals.frequencies,
+      intervals.dataPoints,
+      
+      visits.id AS visit_id,
+      visits.visitDate,
+      visits.visitNotes,
+      visits.visitType,
+      
+      patients.id AS patient_id,
+      patients.fullName,
+      patients.email,
+      patients.dateOfBirth,
+      patients.contactInformation,
+      patients.age,
+      patients.gender,
+      patients.height,
+      patients.weight,
+      
+      clinicals.id AS clinical_id,
+      clinicals.bloodGroup,
+      clinicals.antigenStatus,
+      clinicals.systolic,
+      clinicals.diastolic,
+      clinicals.temperature,
+      clinicals.smokingType,
+      clinicals.overAllYearOfSmoking,
+      clinicals.dailyConsumption,
+      clinicals.smokingIndex,
+      clinicals.alcoholFreeDays,
+      clinicals.alcoholType,
+      clinicals.alcoholConsumption,
+      clinicals.hemoglobin,
+      clinicals.reacentHealthIssue,
+      clinicals.hereditaryHistory
+    FROM intervals
+    JOIN visits ON intervals.visit_id = visits.id
+    JOIN patients ON visits.patient_id = patients.id
+    LEFT JOIN clinicals ON patients.id = clinicals.patient_id
+    WHERE intervals.id = ?
+  `;
+
+  const rawData: PatientInfo[] = await database
+    .get('intervals')
+    .query(Q.unsafeSqlQuery(query, [interval_id]))
+    .unsafeFetchRaw();
+
+  return rawData;
+};
+
 const ensureDirectoryExists = async (path: string): Promise<void> => {
   const exists = await RNFS.exists(path);
   if (!exists) {
@@ -37,9 +133,13 @@ const create_csv_andSave = async (
   configArray: string[],
   visitId: string,
   intervalTag: number,
+  interval_id: string,
   dbService: DatabaseService,
 ): Promise<void> => {
   showToastCSV();
+
+  const patientInfo = await getPatientInfo(interval_id);
+  console.log(patientInfo);
 
   const baseDir =
     Platform.OS === 'android'
@@ -47,11 +147,20 @@ const create_csv_andSave = async (
       : RNFS.ExternalDirectoryPath;
 
   const ninDirPath = `${baseDir}/NIN`;
-  const patientFolderPath = `${ninDirPath}/${visitId}`;
+  const formattedName = patientInfo[0].fullName.trim().replace(/\s+/g, '_');
+  const patientFolderPath = `${ninDirPath}/${formattedName}`;
+  const visitFolderPath = `${patientFolderPath}/${visitId}`;
 
   try {
     await ensureDirectoryExists(ninDirPath);
     await ensureDirectoryExists(patientFolderPath);
+    await ensureDirectoryExists(visitFolderPath);
+
+    const patientcsvContent = jsonToCSV(
+      patientInfo.map(({configuration, frequencies, ...rest}) => rest),
+    );
+    const patientInfoPath = `${visitFolderPath}/patientInfo.csv`;
+    await RNFS.writeFile(patientInfoPath, patientcsvContent, 'utf8');
 
     const results = await Promise.all(
       configArray.map(async config => {
@@ -63,7 +172,7 @@ const create_csv_andSave = async (
 
           if (data.length > 0) {
             const csvContent = jsonToCSV(data);
-            const filePath = `${patientFolderPath}/${config}_${intervalTag}.csv`;
+            const filePath = `${visitFolderPath}/${config}_${intervalTag}.csv`;
             await RNFS.writeFile(filePath, csvContent, 'utf8');
             return true;
           }

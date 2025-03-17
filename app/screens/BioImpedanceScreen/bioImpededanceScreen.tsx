@@ -16,6 +16,7 @@ import {RouteProp} from '@react-navigation/native';
 import {Interval} from '../../watermelodb/models/interval';
 import {database} from '../../watermelodb/database';
 import Toast from 'react-native-toast-message';
+import {Q} from '@nozbe/watermelondb';
 
 import SimpleGraph from './graphBIO';
 import {create_csv_andSave} from '../../utils/csvgenerator';
@@ -106,7 +107,8 @@ const BioImpedanceScreen: FC<BioImpedanceScreenProps> = observer(({route}) => {
       await create_csv_andSave(
         configies.configuration,
         impedanceService.currentInterval?.visit.id,
-        impedanceService.currentInterval?.interval_tag ?? 0,
+        impedanceService.currentInterval?.interval_tag!,
+        impedanceService.currentInterval?.id!,
         dbService,
       );
     } finally {
