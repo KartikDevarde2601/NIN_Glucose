@@ -6,6 +6,7 @@ import {Platform} from 'react-native';
 import {OP_DB_TABLE} from '../op-sqllite/databaseService';
 import {database} from '../watermelodb/database';
 import {Q} from '@nozbe/watermelondb';
+import {formatDate} from './dateformater';
 
 interface PatientInfo {
   age: number;
@@ -138,8 +139,16 @@ const create_csv_andSave = async (
 ): Promise<void> => {
   showToastCSV();
 
+  const date: Date = new Date();
+
+  const dayName: string = date.toLocaleDateString('en-GB', {weekday: 'long'});
+  const day: string = String(date.getDate()).padStart(2, '0');
+  const month: string = String(date.getMonth() + 1).padStart(2, '0');
+  const year: string = String(date.getFullYear());
+
+  const formattedDate: string = `${dayName}_${day}-${month}-${year}`;
+
   const patientInfo = await getPatientInfo(interval_id);
-  console.log(patientInfo);
 
   const baseDir =
     Platform.OS === 'android'
@@ -147,12 +156,16 @@ const create_csv_andSave = async (
       : RNFS.ExternalDirectoryPath;
 
   const ninDirPath = `${baseDir}/NIN`;
+  const dateDirPath = `${ninDirPath}/${formattedDate
+    .trim()
+    .replace(/\s+/g, '_')}`;
   const formattedName = patientInfo[0].fullName.trim().replace(/\s+/g, '_');
-  const patientFolderPath = `${ninDirPath}/${formattedName}`;
+  const patientFolderPath = `${dateDirPath}/${formattedName}`;
   const visitFolderPath = `${patientFolderPath}/${visitId}`;
 
   try {
     await ensureDirectoryExists(ninDirPath);
+    await ensureDirectoryExists(dateDirPath);
     await ensureDirectoryExists(patientFolderPath);
     await ensureDirectoryExists(visitFolderPath);
 
