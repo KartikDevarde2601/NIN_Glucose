@@ -11,13 +11,22 @@ import {
 } from 'react-native-paper';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {format} from 'date-fns';
-import {useSync} from '../hook/useSync';
+import {useSync} from '../hook/useDataSync';
 import {useTheme} from 'react-native-paper';
 import {Observer} from 'mobx-react-lite';
 import {useStores} from '../models';
+import useDataSync from '../hook/useSensorSync';
 
 const ProfileScreen = () => {
   const {isSyncing, syncData} = useSync();
+  const {startSync, isSyncingSensor, error, resetError} = useDataSync(
+    'ws://10.2.137.217:8082/ws',
+    10,
+    {
+      reconnectAttempts: 3,
+      debugMode: __DEV__,
+    },
+  );
   const [syncType, setSyncType] = useState<'Patient' | 'Sensor' | null>(null);
   const {sync} = useStores();
   const theme = useTheme();
@@ -33,6 +42,7 @@ const ProfileScreen = () => {
 
   const handleSensorDataSync = async () => {
     setSyncType('Sensor');
+    startSync();
   };
 
   return (
@@ -150,16 +160,17 @@ const ProfileScreen = () => {
               </View>
             </View>
 
-            {isSyncing && (
-              <View style={styles.syncProgress}>
-                <ActivityIndicator size={16} color="#6200ee" />
-                <Text variant="bodySmall" style={styles.syncingText}>
-                  {syncType === 'Patient'
-                    ? 'Syncing patients...'
-                    : 'Syncing sensors...'}
-                </Text>
-              </View>
-            )}
+            {isSyncing ||
+              (isSyncingSensor && (
+                <View style={styles.syncProgress}>
+                  <ActivityIndicator size={16} color="#6200ee" />
+                  <Text variant="bodySmall" style={styles.syncingText}>
+                    {syncType === 'Patient'
+                      ? 'Syncing patients...'
+                      : 'Syncing sensors...'}
+                  </Text>
+                </View>
+              ))}
           </View>
 
           <View style={styles.buttonContainer}>
@@ -177,7 +188,7 @@ const ProfileScreen = () => {
               onPress={handleSensorDataSync}
               style={[styles.syncButton, styles.sensorButton]}
               icon="sync"
-              disabled={isSyncing}
+              disabled={isSyncingSensor}
               contentStyle={styles.buttonContent}>
               Sensor Data
             </Button>
