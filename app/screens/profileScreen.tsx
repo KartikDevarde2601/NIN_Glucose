@@ -13,7 +13,6 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {format} from 'date-fns';
 import {useSync} from '../hook/useDataSync';
 import {useTheme} from 'react-native-paper';
-import {Observer} from 'mobx-react-lite';
 import {useStores} from '../models';
 import useDataSync from '../hook/useSensorSync';
 

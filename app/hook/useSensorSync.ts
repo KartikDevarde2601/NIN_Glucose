@@ -1,13 +1,15 @@
 import {useState, useEffect, useCallback, useRef} from 'react';
 import {DatabaseService} from '../op-sqllite/databaseService';
 import {OP_DB_TABLE} from '../op-sqllite/databaseService';
+import {useStores} from '../models';
+import {SyncStatus_Enum} from '../models/syncIndicator';
 
 // Interface for server response structure
 interface ServerResponse {
   success: boolean;
   error?: string;
-  table?: string;
-  id?: number[];
+  table: string;
+  ids: number[];
 }
 
 // Configuration options for synchronization
@@ -23,7 +25,7 @@ interface ProgressEntry {
   complete: boolean;
   retries: number;
   lastError: Date | null;
-  batchId: number;
+  ids: number[];
 }
 
 interface SyncProgress {
@@ -40,6 +42,7 @@ const useDataSync = (
   options: SyncOptions = {},
 ) => {
   // State management
+  const {sync} = useStores();
   const [isSyncingSensor, setIsSyncingSensor] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,7 +52,7 @@ const useDataSync = (
       complete: false,
       retries: 0,
       lastError: null,
-      batchId: 0,
+      ids: [],
     };
   };
 
@@ -124,11 +127,11 @@ const useDataSync = (
       wsRef.current.onmessage = async event => {
         try {
           const response: ServerResponse = JSON.parse(event.data);
-          console.log(response);
-          //   if (response.success && response.table && response.id) {
-          //     await markRecordsAsSynced(response.table, response.id);
-          //     processedRecordsRef.current += response.id.length;
-          //   }
+          if (response.success && response.table && response.ids) {
+            const progress = syncProgressRef.current[response.table];
+            progress.ids = [...progress.ids, ...response.ids];
+            processedRecordsRef.current += response.ids.length;
+          }
         } catch (parseError) {
           log(`Error parsing server response: ${parseError}`, 'error');
           setError('Invalid server response format');
@@ -154,19 +157,19 @@ const useDataSync = (
 
   // Mark records as synced in local database
   const markRecordsAsSynced = useCallback(
-    async (tableName: string, ids: number[]) => {
-      if (ids.length === 0) return;
+    async (process: ProgressEntry, tableName: string) => {
+      if (process.ids.length === 0) return;
 
       try {
-        const placeholders = ids.map(() => '?').join(',');
+        const placeholders = process.ids.map(() => '?').join(',');
         const query = `
           UPDATE ${tableName}
           SET is_synced = 1
           WHERE id IN (${placeholders})
         `;
 
-        await db.execute(query, ids);
-        log(`Marked ${ids.length} records as synced in ${tableName}`);
+        const result = await db.transactional(query, process.ids);
+        log(`Marked ${process.ids.length} records as synced in ${tableName}`);
       } catch (dbError) {
         log(`Failed to mark records as synced: ${dbError}`, 'error');
         setError('Database update failed');
@@ -261,6 +264,7 @@ const useDataSync = (
     }
 
     try {
+      sync.setSdStatus(SyncStatus_Enum.Syncing);
       setIsSyncingSensor(true);
       setError(null);
       processedRecordsRef.current = 0;
@@ -282,13 +286,16 @@ const useDataSync = (
           }
 
           await sendData(table, progress, data);
-          await delay(100); // Short delay between batches
+          await delay(100);
         }
+        await markRecordsAsSynced(progress, table);
+        await reset(progress);
       }
-
-      log('Sync completed successfully');
+      sync.setSdStatus(SyncStatus_Enum.Done);
+      sync.setSdTimestamp(new Date());
     } catch (error) {
       log(`Sync failed: ${error}`, 'error');
+      sync.setPdStatus(SyncStatus_Enum.Error);
       setError(typeof error === 'string' ? error : 'Unknown error occurred');
     } finally {
       setIsSyncingSensor(false);
@@ -300,6 +307,11 @@ const useDataSync = (
   // Helper function for delays
   const delay = useCallback((ms: number) => {
     return new Promise(resolve => setTimeout(resolve, ms));
+  }, []);
+
+  const reset = useCallback(async (progress: ProgressEntry) => {
+    (progress.offset = 0), (progress.complete = false);
+    (progress.offset = 0), (progress.ids = []);
   }, []);
 
   return {
